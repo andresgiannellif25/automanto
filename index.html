@@ -306,7 +306,7 @@ function App(){
     <div style={{background:T.bg,color:T.tx,height:"100vh",display:"flex",flexDirection:"column",fontFamily:ff,WebkitFontSmoothing:"antialiased"}}>
 
       {/* HEADER */}
-      <div style={{background:T.nb,flexShrink:0,padding:"16px 16px 10px",borderBottom:`0.5px solid ${T.br}`,zIndex:50}}>
+      <div style={{background:T.nb,flexShrink:0,padding:"0 16px 10px",paddingTop:"max(16px, env(safe-area-inset-top))",borderBottom:`0.5px solid ${T.br}`,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{fontSize:22,fontWeight:700}}>{tab==="home"?"🚗 Panel":tab==="track"?"⏱ Seguimiento":tab==="records"?"📋 Registros":"⚙️ Config"}</div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -626,8 +626,8 @@ function App(){
       )}
 
       {/* TAB BAR */}
-      <div style={{background:T.tb,borderTop:`0.5px solid ${T.br}`,flexShrink:0}}>
-        <div style={{display:"flex",justifyContent:"space-around",padding:"8px 0 12px"}}>
+      <div style={{background:T.tb,borderTop:`0.5px solid ${T.br}`,flexShrink:0,paddingBottom:"max(12px, env(safe-area-inset-bottom))"}}>
+        <div style={{display:"flex",justifyContent:"space-around",padding:"8px 0 0"}}>
           {TABS.map(t=>{
             const a=tab===t.id;
             return(
