@@ -259,6 +259,9 @@ function App(){
   const commitVehicle=field=>{const next={...vehicle,[field]:vDraft[field]};setVehicle(next);save(next,null,null);};
 
   const exportData=()=>{
+    // En modo ejemplo no hay nada guardado: descargar un backup vacío que
+    // luego se pueda reimportar borraría la vista previa sin explicar nada.
+    if(demo){alert("Todavía no hay nada que respaldar.\n\nLos registros que ves son ejemplos y no están guardados. Crea tu primer registro o completa los datos del vehículo, y vuelve a exportar.");return;}
     const data={vehicle,records,itvs,schemaVersion:SCHEMA,updatedAt:uRef.current,exportedAt:new Date().toISOString(),version:"1"};
     const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);
