@@ -31,7 +31,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 const { useState, useMemo, useEffect, useRef, useCallback } = React;
 
 /* ── Storage ── */
-const SK="automanto_v3", IDB_NAME="automanto_db";
+const SK="automanto_v3", IDB_NAME="automanto_db", SCHEMA=1;
 function idbOpen(){return new Promise((res,rej)=>{try{const r=indexedDB.open(IDB_NAME,1);r.onupgradeneeded=e=>e.target.result.createObjectStore("kv");r.onsuccess=e=>res(e.target.result);r.onerror=()=>rej();}catch(e){rej(e);}});}
 async function idbGet(){try{const db=await idbOpen();return await new Promise((res,rej)=>{const tx=db.transaction("kv","readonly");const r=tx.objectStore("kv").get(SK);r.onsuccess=()=>res(r.result??null);r.onerror=()=>rej();});}catch{return null;}}
 async function idbSet(val){try{const db=await idbOpen();await new Promise((res,rej)=>{const tx=db.transaction("kv","readwrite");tx.objectStore("kv").put(val,SK);tx.oncomplete=()=>res();tx.onerror=()=>rej();});return true;}catch{return false;}}
@@ -39,7 +39,7 @@ const lsGet=()=>{try{return localStorage.getItem(SK);}catch{return null;}};
 const lsSet=v=>{try{localStorage.setItem(SK,v);}catch{}};
 const pJSON=s=>{try{if(s)return JSON.parse(s);}catch{}return null;};
 async function storageLoad(){const fast=pJSON(lsGet());if(fast)return fast;return pJSON(await idbGet());}
-async function storageSave(data){const j=JSON.stringify(data);lsSet(j);await idbSet(j);}
+async function storageSave(data){const st={...data,schemaVersion:SCHEMA,updatedAt:new Date().toISOString()};const j=JSON.stringify(st);lsSet(j);await idbSet(j);return st.updatedAt;}
 
 /* ── Constants ── */
 const INIT_V={owner:"",brand:"",model:"",year:"",plate:"",color:"",vin:"",km:"",garage:"",phone:""};
@@ -143,6 +143,7 @@ function App(){
   const [catFilt,setCatFilt]=useState("Todos");
 
   const vRef=useRef(vehicle),rRef=useRef(records),iRef=useRef(itvs);
+  const uRef=useRef(null); // updatedAt del último guardado conocido
   useEffect(()=>{vRef.current=vehicle;},[vehicle]);
   useEffect(()=>{rRef.current=records;},[records]);
   useEffect(()=>{iRef.current=itvs;},[itvs]);
@@ -161,6 +162,7 @@ function App(){
         if(d.vehicle){setVehicle(d.vehicle);setVDraft(d.vehicle);}
         if(d.records)setRecords(d.records);
         if(d.itvs)setItvs(d.itvs);
+        uRef.current=d.updatedAt||null;
         setSyncMsg("Guardado ✓");
       }else{setSyncMsg("Listo");}
       setLoaded(true);
@@ -169,7 +171,7 @@ function App(){
 
   const save=(v,r,i)=>{
     setSyncMsg("Guardando…");
-    storageSave({vehicle:v??vRef.current,records:r??rRef.current,itvs:i??iRef.current}).then(()=>setSyncMsg("Guardado ✓"));
+    storageSave({vehicle:v??vRef.current,records:r??rRef.current,itvs:i??iRef.current}).then(u=>{uRef.current=u;setSyncMsg("Guardado ✓");});
   };
 
   const D={
@@ -250,7 +252,7 @@ function App(){
   const commitVehicle=field=>{const next={...vehicle,[field]:vDraft[field]};setVehicle(next);save(next,null,null);};
 
   const exportData=()=>{
-    const data={vehicle,records,itvs,exportedAt:new Date().toISOString(),version:"1"};
+    const data={vehicle,records,itvs,schemaVersion:SCHEMA,updatedAt:uRef.current,exportedAt:new Date().toISOString(),version:"1"};
     const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");
