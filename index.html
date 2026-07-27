@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="AutoManto"/>
 <meta name="theme-color" content="#000000"/>
 <title>AutoManto</title>
+<link rel="manifest" href="manifest.webmanifest"/>
 <link rel="icon" type="image/png" href="icon.png"/>
 <link rel="apple-touch-icon" href="icon.png"/>
 <style>
@@ -82,6 +83,11 @@ const SAMPLE_R=[
 const CATS=["Motor","Transmisión","Frenos","Suspensión","Eléctrico","Neumáticos","Filtros","Fluidos","Carrocería","Aire Acondicionado","Inspección","Otros"];
 const CC={Motor:"#FF6B35",Transmisión:"#FF453A",Frenos:"#FF453A",Suspensión:"#BF5AF2",Eléctrico:"#FFD60A",Neumáticos:"#30D158",Filtros:"#0A84FF",Fluidos:"#64D2FF",Carrocería:"#98989E","Aire Acondicionado":"#30D158",Inspección:"#636366",Otros:"#98989E"};
 
+/* ── PWA ── */
+const DK="automanto_pwa_dismiss";
+const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+
 const todayD=new Date();
 const fmt=d=>{if(!d)return"—";const p=d.split("-");return`${p[2]}/${p[1]}/${p[0]}`;};
 const dDiff=(a,b)=>Math.round((new Date(a)-new Date(b))/(864e5));
@@ -140,6 +146,10 @@ function App(){
   const [tFilt,setTFilt]=useState("all");
   const [tCatFilt,setTCatFilt]=useState("Todos");
   const [catFilt,setCatFilt]=useState("Todos");
+  const [swUpd,setSwUpd]=useState(false);   // el SW cacheó una versión distinta
+  const [canInst,setCanInst]=useState(false);
+  const [iosTip,setIosTip]=useState(false); // iOS no emite beforeinstallprompt
+  const pRef=useRef(null);                  // evento beforeinstallprompt diferido
 
   const vRef=useRef(vehicle),rRef=useRef(records),iRef=useRef(itvs);
   const uRef=useRef(null); // updatedAt del último guardado conocido
@@ -168,6 +178,49 @@ function App(){
       setLoaded(true);
     });
   },[]);
+
+  /* Instalación: Chrome/Android emiten beforeinstallprompt y podemos ofrecer
+     el diálogo nativo. iOS no lo emite nunca, así que ahí sólo cabe explicar
+     el gesto manual. Si ya está instalada, no molestamos. */
+  useEffect(()=>{
+    if(isStandalone())return;
+    let off=false;try{off=localStorage.getItem(DK)==="1";}catch(_){}
+    if(off)return;
+    const hBip=e=>{e.preventDefault();pRef.current=e;setCanInst(true);};
+    const hIns=()=>{setCanInst(false);setIosTip(false);pRef.current=null;};
+    window.addEventListener("beforeinstallprompt",hBip);
+    window.addEventListener("appinstalled",hIns);
+    if(isIOS())setIosTip(true);
+    return()=>{window.removeEventListener("beforeinstallprompt",hBip);window.removeEventListener("appinstalled",hIns);};
+  },[]);
+
+  /* Dos vías para enterarse de que hay versión nueva:
+     - postMessage, si la página ya estaba abierta y escuchando.
+     - la marca en caché, que el SW deja durante la navegación (normalmente
+       antes de que este efecto corra, así que el mensaje se perdería).
+       Se consume al leerla para que avise una sola vez. */
+  useEffect(()=>{
+    if(!("serviceWorker" in navigator))return;
+    const h=e=>{if(e.data&&e.data.type==="AUTOMANTO_UPDATE_READY")setSwUpd(true);};
+    navigator.serviceWorker.addEventListener("message",h);
+    (async()=>{
+      try{
+        const c=await caches.open("automanto-v1");
+        if(await c.match("https://automanto.local/update-pending")){
+          await c.delete("https://automanto.local/update-pending");
+          setSwUpd(true);
+        }
+      }catch(_){}
+    })();
+    return()=>navigator.serviceWorker.removeEventListener("message",h);
+  },[]);
+
+  const doInstall=async()=>{
+    const p=pRef.current;if(!p)return;
+    p.prompt();await p.userChoice;
+    pRef.current=null;setCanInst(false);
+  };
+  const dismissPWA=()=>{try{localStorage.setItem(DK,"1");}catch(_){}setCanInst(false);setIosTip(false);};
 
   const save=(v,r,i)=>{
     setSeeded(true);
@@ -333,6 +386,27 @@ function App(){
           <div style={{fontSize:11,color:T.tx4}}>{syncMsg}</div>
         </div>
       </div>
+
+      {/* AVISO: NUEVA VERSIÓN */}
+      {swUpd&&(
+        <div style={{background:T.ac,flexShrink:0,padding:"9px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div style={{fontSize:13,color:"#fff",fontWeight:500}}>Nueva versión disponible</div>
+          <button onClick={()=>location.reload()} style={{background:"rgba(255,255,255,0.25)",color:"#fff",border:"none",borderRadius:16,padding:"5px 14px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Actualizar</button>
+        </div>
+      )}
+
+      {/* AVISO: INSTALAR */}
+      {(canInst||iosTip)&&(
+        <div style={{background:T.bg2,flexShrink:0,borderBottom:`0.5px solid ${T.br}`,padding:"10px 16px",display:"flex",alignItems:"center",gap:10}}>
+          <div style={{fontSize:20,flexShrink:0}}>📲</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:13,fontWeight:600,color:T.tx}}>Instalar AutoManto</div>
+            <div style={{fontSize:11,color:T.tx3,marginTop:1}}>{canInst?"Acceso directo y uso sin conexión.":"Pulsa Compartir y luego «Añadir a pantalla de inicio»."}</div>
+          </div>
+          {canInst&&<button onClick={doInstall} style={{background:T.ac,color:"#fff",border:"none",borderRadius:16,padding:"6px 14px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Instalar</button>}
+          <button onClick={dismissPWA} aria-label="Descartar" style={{background:T.bg4,border:"none",borderRadius:"50%",width:26,height:26,cursor:"pointer",color:T.tx3,fontSize:13,flexShrink:0}}>✕</button>
+        </div>
+      )}
 
       {/* SCROLL BODY */}
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
@@ -661,6 +735,17 @@ function App(){
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+
+<script>
+/* Registro del service worker.
+   Se guarda el esquema: en file:// no existen los service workers, así que
+   abrir index.html con doble clic sigue funcionando sin errores en consola. */
+if("serviceWorker" in navigator && (location.protocol==="https:"||location.protocol==="http:")){
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
 </script>
 </body>
 </html>
