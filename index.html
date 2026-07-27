@@ -85,8 +85,6 @@ const CC={Motor:"#FF6B35",Transmisión:"#FF453A",Frenos:"#FF453A",Suspensión:"#
 const todayD=new Date();
 const fmt=d=>{if(!d)return"—";const p=d.split("-");return`${p[2]}/${p[1]}/${p[0]}`;};
 const dDiff=(a,b)=>Math.round((new Date(a)-new Date(b))/(864e5));
-const wS=a=>a.map(i=>({...i}));
-const sS=a=>a.map(i=>({...i}));
 
 function IRow({iv,T,onCommit,onEdit,onDelete}){
   const kmRef=useRef(null),dayRef=useRef(null);
@@ -129,7 +127,8 @@ function App(){
   const [loaded,setLoaded]=useState(false);
   const [syncMsg,setSyncMsg]=useState("Cargando…");
   const [vehicle,setVehicle]=useState({...INIT_V});
-  const [records,setRecords]=useState(SAMPLE_R);
+  const [records,setRecords]=useState([]);
+  const [seeded,setSeeded]=useState(false); // true = el usuario ya tiene datos propios
   const [itvs,setItvs]=useState(DEFAULT_INT);
   const [vDraft,setVDraft]=useState({...INIT_V});
   const [form,setForm]=useState({...EMPTY_F});
@@ -163,6 +162,7 @@ function App(){
         if(d.records)setRecords(d.records);
         if(d.itvs)setItvs(d.itvs);
         uRef.current=d.updatedAt||null;
+        setSeeded(true); // existe documento guardado ⇒ datos propios, nunca ejemplos
         setSyncMsg("Guardado ✓");
       }else{setSyncMsg("Listo");}
       setLoaded(true);
@@ -170,6 +170,7 @@ function App(){
   },[]);
 
   const save=(v,r,i)=>{
+    setSeeded(true);
     setSyncMsg("Guardando…");
     storageSave({vehicle:v??vRef.current,records:r??rRef.current,itvs:i??iRef.current}).then(u=>{uRef.current=u;setSyncMsg("Guardado ✓");});
   };
@@ -196,8 +197,14 @@ function App(){
 
   const km0=parseInt(vehicle.km)||0;
 
+  /* Los ejemplos son sólo vista previa: se muestran mientras no haya datos
+     propios, pero nunca entran en `records` y por tanto nunca se guardan.
+     Lectura/visualización usan dispR; toda escritura usa records. */
+  const demo=!seeded;
+  const dispR=demo?SAMPLE_R:records;
+
   const tracking=useMemo(()=>itvs.map(iv=>{
-    const ms=records.filter(r=>r.service===iv.name).sort((a,b)=>b.km-a.km||new Date(b.date)-new Date(a.date));
+    const ms=dispR.filter(r=>r.service===iv.name).sort((a,b)=>new Date(b.date)-new Date(a.date)||b.km-a.km);
     const last=ms[0]||null,lKm=last?last.km:0,lDt=last?last.date:null;
     let kmL=null,dL=null,nKm=null,nDt=null;
     if(iv.km>0&&lKm>0){nKm=lKm+iv.km;kmL=km0>0?nKm-km0:null;}
@@ -205,14 +212,14 @@ function App(){
     let st="pending";
     if(last){st="ok";if((kmL!==null&&kmL<=0)||(dL!==null&&dL<=0))st="overdue";else if((kmL!==null&&iv.km>0&&kmL<=iv.km*0.15)||(dL!==null&&dL<=30))st="soon";}
     return{...iv,last,lKm,lDt,kmL,dL,nKm,nDt,st};
-  }),[records,itvs,km0]);
+  }),[dispR,itvs,km0]);
 
   const ov=tracking.filter(t=>t.st==="overdue").length;
   const so=tracking.filter(t=>t.st==="soon").length;
   const ok=tracking.filter(t=>t.st==="ok").length;
-  const ts=records.reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
+  const ts=dispR.reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
   const fT=tracking.filter(t=>(tFilt==="all"||t.st===tFilt)&&(tCatFilt==="Todos"||t.cat===tCatFilt));
-  const fR=[...records].sort((a,b)=>new Date(b.date)-new Date(a.date)).filter(r=>catFilt==="Todos"||r.cat===catFilt);
+  const fR=[...dispR].sort((a,b)=>new Date(b.date)-new Date(a.date)||b.km-a.km).filter(r=>catFilt==="Todos"||r.cat===catFilt);
 
   const sc=s=>s==="overdue"?T.rd:s==="soon"?T.or:s==="ok"?T.gr:T.tx4;
   const sl=s=>s==="overdue"?"Vencido":s==="soon"?"Próximo":s==="ok"?"Al día":"Sin datos";
@@ -339,7 +346,7 @@ function App(){
               <div style={{...card(),padding:"14px 16px",borderTop:`3px solid ${T.pu}`}}>
                 <div style={{fontSize:11,color:T.tx3,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Total gastado</div>
                 <div style={{fontSize:22,fontWeight:700,color:T.tx}}>${ts.toLocaleString("es",{minimumFractionDigits:2})}</div>
-                <div style={{fontSize:11,color:T.tx4,marginTop:2}}>{records.length} servicios</div>
+                <div style={{fontSize:11,color:T.tx4,marginTop:2}}>{dispR.length} servicios</div>
               </div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
@@ -370,9 +377,9 @@ function App(){
             </>}
             <div style={sh}>Últimos servicios</div>
             <div style={card()}>
-              {records.length===0&&<div style={{padding:"24px 16px",color:T.tx3,textAlign:"center",fontSize:15}}>Sin registros aún</div>}
-              {[...records].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5).map((r,i,a)=>(
-                <div key={r.id} onClick={()=>openEdit(r)} style={{...rrow({borderBottom:i<a.length-1?`0.5px solid ${T.sp}`:"none",cursor:"pointer"}),gap:12}}>
+              {dispR.length===0&&<div style={{padding:"24px 16px",color:T.tx3,textAlign:"center",fontSize:15}}>Sin registros aún</div>}
+              {[...dispR].sort((a,b)=>new Date(b.date)-new Date(a.date)||b.km-a.km).slice(0,5).map((r,i,a)=>(
+                <div key={r.id} onClick={()=>{if(!demo)openEdit(r);}} style={{...rrow({borderBottom:i<a.length-1?`0.5px solid ${T.sp}`:"none",cursor:demo?"default":"pointer"}),gap:12}}>
                   <div style={{width:38,height:38,borderRadius:10,background:`${CC[r.cat]||"#636366"}22`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                     {(()=>{const tr=tracking.find(t=>t.name===r.service);const c=tr?sc(tr.st):CC[r.cat]||"#636366";const sz=tr&&tr.st==="overdue"?14:tr&&tr.st==="soon"?11:9;return<div style={{width:sz,height:sz,borderRadius:"50%",background:c,transition:"all .3s",boxShadow:`0 0 ${tr?.st==="overdue"?6:3}px ${c}88`}}/>;})()}
                   </div>
@@ -446,7 +453,7 @@ function App(){
                       </div>
                       {t.last&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8}}>
                         <div style={{fontSize:12,color:T.tx3}}>Por <b style={{color:T.tx2}}>{t.last.by}</b> · ${(t.last.amount||0).toFixed(2)}</div>
-                        <button onClick={()=>openEdit(t.last)} style={{fontSize:11,color:T.ac,background:"none",border:`0.5px solid ${T.ac}66`,borderRadius:20,padding:"3px 10px",cursor:"pointer",fontWeight:500}}>Editar</button>
+                        {!demo&&<button onClick={()=>openEdit(t.last)} style={{fontSize:11,color:T.ac,background:"none",border:`0.5px solid ${T.ac}66`,borderRadius:20,padding:"3px 10px",cursor:"pointer",fontWeight:500}}>Editar</button>}
                       </div>}
                     </div>
                   </div>
@@ -466,10 +473,14 @@ function App(){
                 ))}
               </div>
             </div>
+            {demo&&<div style={{...card({marginBottom:10}),padding:"12px 14px",borderLeft:`3px solid ${T.or}`}}>
+              <div style={{fontWeight:600,fontSize:14,color:T.tx}}>Datos de ejemplo</div>
+              <div style={{fontSize:12,color:T.tx3,marginTop:2}}>Sólo para que veas cómo funciona. No se guardan y desaparecerán al crear tu primer registro.</div>
+            </div>}
             {fR.length===0&&<div style={{...card(),padding:"32px 16px",textAlign:"center",color:T.tx3,fontSize:15}}>Sin registros.</div>}
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {fR.map(r=>(
-                <div key={r.id} style={card()}>
+                <div key={r.id} style={{...card(),opacity:demo?0.65:1}}>
                   <div style={{padding:"12px 14px"}}>
                     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:4}}>
                       <div style={{flex:1}}>
@@ -485,14 +496,14 @@ function App(){
                       <span style={{fontSize:12,color:T.tx3}}>{r.by}</span>
                     </div>
                   </div>
-                  <div style={{display:"flex",borderTop:`0.5px solid ${T.sp}`}}>
+                  {!demo&&<div style={{display:"flex",borderTop:`0.5px solid ${T.sp}`}}>
                     <button onClick={()=>openEdit(r)} style={{flex:1,padding:"10px",background:"none",border:"none",cursor:"pointer",fontSize:14,color:T.ac,fontWeight:500,borderRight:`0.5px solid ${T.sp}`}}>Editar</button>
                     <button onClick={()=>delRec(r.id)} style={{flex:1,padding:"10px",background:"none",border:"none",cursor:"pointer",fontSize:14,color:T.rd,fontWeight:500}}>Eliminar</button>
-                  </div>
+                  </div>}
                 </div>
               ))}
             </div>
-            {records.length>0&&<div style={{...card({marginTop:12}),padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            {dispR.length>0&&<div style={{...card({marginTop:12}),padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <span style={{fontSize:15,color:T.tx2}}>Total invertido</span>
               <span style={{fontSize:18,fontWeight:700,color:T.gr}}>${ts.toLocaleString("es",{minimumFractionDigits:2})}</span>
             </div>}
