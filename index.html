@@ -153,6 +153,36 @@ const DK="automanto_pwa_dismiss";
 const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 
+/* Persistencia del almacenamiento (deuda #4).
+   persist() es un PEDIDO, no una orden: el navegador decide y puede negarlo.
+   WebKit lo concede por heurísticas, sobre todo si la app está instalada en
+   pantalla de inicio; en una pestaña normal de Safari lo normal es que lo
+   deniegue. Por eso se registra el resultado real: dar por hecho que quedó
+   concedida sería el mismo error que nos trajo hasta aquí.
+   Ojo: esto NO es la defensa contra el borrado a los 7 días de ITP. Esa
+   exención la da estar instalada en pantalla de inicio, no esta llamada. */
+async function checkPersistencia(){
+  try{
+    if(!navigator.storage||!navigator.storage.persist){
+      console.info("[AutoManto] Storage API no disponible (Safari <17 o file://): no se puede pedir persistencia.");
+      return;
+    }
+    let ok=await navigator.storage.persisted();
+    const yaEstaba=ok;
+    if(!ok)ok=await navigator.storage.persist();
+    console.info(`[AutoManto] Almacenamiento persistente: ${ok?"CONCEDIDO":"DENEGADO"}`
+      +` · app ${isStandalone()?"instalada":"en pestaña del navegador"}`
+      +(yaEstaba?" · ya lo estaba":"")
+      +(ok?"":" · instalar en pantalla de inicio es lo que más ayuda a que se conceda"));
+    if(navigator.storage.estimate){
+      const e=await navigator.storage.estimate();
+      console.info(`[AutoManto] Uso: ${Math.round((e.usage||0)/1024)} KB de ${Math.round((e.quota||0)/1048576)} MB`);
+    }
+  }catch(err){
+    console.warn("[AutoManto] No se pudo consultar la persistencia:",err&&err.message);
+  }
+}
+
 const todayD=new Date();
 const fmt=d=>{if(!d)return"—";const p=d.split("-");return`${p[2]}/${p[1]}/${p[0]}`;};
 const dDiff=(a,b)=>Math.round((new Date(a)-new Date(b))/(864e5));
@@ -243,6 +273,8 @@ function App(){
       setLoaded(true);
     });
   },[]);
+
+  useEffect(()=>{checkPersistencia();},[]);
 
   /* Instalación: Chrome/Android emiten beforeinstallprompt y podemos ofrecer
      el diálogo nativo. iOS no lo emite nunca, así que ahí sólo cabe explicar

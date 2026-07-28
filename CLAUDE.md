@@ -164,7 +164,17 @@ Con stale-while-revalidate se sirve la copia cacheada al instante (rápido y off
 
 Auditado contra el código el 2026-07-28.
 
-1. **Safari iOS purga el almacenamiento** tras ~7 días de inactividad. **`navigator.storage.persist()` no se pide en ninguna parte** — es la única defensa real y son tres líneas. Prioridad alta: hay indicios de una pérdida previa de 23 intervalos personalizados.
+1. **Safari iOS borra el almacenamiento tras ~7 días.** Sigue vigente. Prioridad alta: hay indicios de una pérdida previa de 23 intervalos personalizados.
+
+   No es desalojo por falta de espacio, es **ITP**: WebKit borra todo el almacenamiento escribible por script (localStorage, IndexedDB, Cache, registro del SW) tras 7 días de uso de Safari sin interacción con el sitio.
+
+   **Lo que sí protege:** estar **instalada en pantalla de inicio**. Las apps instaladas no forman parte de Safari y llevan su propio contador de días de uso, que se reinicia al usarlas. Ésa es la exención documentada para este caso concreto, y es la razón de peso para que el banner de instalación del §7 exista.
+
+   **Lo que NO protege:** `navigator.storage.persist()`, pese a lo que parece. Se pide al arrancar y se registra el resultado en consola (`checkPersistencia`), pero WebKit concede ese permiso *por heurísticas, sobre todo si ya estás instalado en pantalla de inicio*. En una pestaña normal de Safari lo habitual es que lo deniegue — justo el escenario donde haría falta. Protege sobre todo del desalojo por presión de espacio. Verificado empíricamente: en Chromium sobre localhost devuelve `false`.
+
+   Requiere además Safari 17 / iOS 17: antes, `navigator.storage` puede no existir. La llamada está guardada.
+
+   **Riesgo residual:** un usuario que abra la app en una pestaña y nunca la instale sigue expuesto exactamente igual que antes. La única mitigación para él sigue siendo exportar a mano.
 2. **Un solo vehículo** por instalación → el modelo de datos no contempla flota
 3. **Sin sincronización** — datos locales por dispositivo
 4. **Vínculo por string**: reducido a dos fallbacks de lectura y la cascada de `saveItv`. Se retira en C4
