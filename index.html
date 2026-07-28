@@ -32,14 +32,15 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 const { useState, useMemo, useEffect, useRef, useCallback } = React;
 
 /* ── Storage ── */
-const SK="automanto_v3", IDB_NAME="automanto_db", SCHEMA=1;
+const SK="automanto_v3", IDB_NAME="automanto_db", SCHEMA=2;
 function idbOpen(){return new Promise((res,rej)=>{try{const r=indexedDB.open(IDB_NAME,1);r.onupgradeneeded=e=>e.target.result.createObjectStore("kv");r.onsuccess=e=>res(e.target.result);r.onerror=()=>rej();}catch(e){rej(e);}});}
 async function idbGet(){try{const db=await idbOpen();return await new Promise((res,rej)=>{const tx=db.transaction("kv","readonly");const r=tx.objectStore("kv").get(SK);r.onsuccess=()=>res(r.result??null);r.onerror=()=>rej();});}catch{return null;}}
 async function idbSet(val){try{const db=await idbOpen();await new Promise((res,rej)=>{const tx=db.transaction("kv","readwrite");tx.objectStore("kv").put(val,SK);tx.oncomplete=()=>res();tx.onerror=()=>rej();});return true;}catch{return false;}}
 const lsGet=()=>{try{return localStorage.getItem(SK);}catch{return null;}};
 const lsSet=v=>{try{localStorage.setItem(SK,v);}catch{}};
 const pJSON=s=>{try{if(s)return JSON.parse(s);}catch{}return null;};
-async function storageLoad(){const fast=pJSON(lsGet());if(fast)return fast;return pJSON(await idbGet());}
+// Punto de entrada 1 de 3: todo lo que se lee de disco pasa por migrate().
+async function storageLoad(){const fast=pJSON(lsGet());if(fast)return migrate(fast);return migrate(pJSON(await idbGet()));}
 async function storageSave(data){const st={...data,schemaVersion:SCHEMA,updatedAt:new Date().toISOString()};const j=JSON.stringify(st);lsSet(j);await idbSet(j);return st.updatedAt;}
 
 /* ── Constants ── */
@@ -129,10 +130,19 @@ function migrate(doc){
   return toV2(doc);
 }
 
+/* Registros que quedarían sin vincular. Lo muestra el diálogo de importar
+   para que la decisión se tome viendo el coste, no a ciegas. */
+const orphanCount=d=>(Array.isArray(d&&d.records)?d.records:[]).filter(r=>r.itvId==null).length;
+
+/* Un JSON válido no es un backup de AutoManto. Sin esto, cualquier .json
+   suelto reemplazaría los datos del usuario en cuanto confirmara el diálogo. */
+const looksLikeBackup=d=>!!d&&typeof d==="object"&&!Array.isArray(d)&&(d.vehicle!==undefined||Array.isArray(d.records)||Array.isArray(d.itvs));
+
+/* Punto de entrada 3 de 3: los datos semilla nacen ya en v2, con itvId. */
 const SAMPLE_R=[
-  {id:1,service:"Aceite de motor",cat:"Filtros",desc:"Cambio aceite 5W-30 sintético + filtro",date:"2024-06-15",km:45000,by:"AutoShop Pérez",place:"Taller Central",amount:35,notes:"Próximo a 50,000 km"},
-  {id:2,service:"Pastillas delanteras",cat:"Frenos",desc:"Sustitución pastillas freno delantero",date:"2024-08-20",km:47500,by:"AutoShop Pérez",place:"Taller Central",amount:80,notes:"Revisar discos próximo cambio"},
-  {id:3,service:"Rotación de llantas",cat:"Neumáticos",desc:"Rotación cruzada + calibración presión",date:"2024-09-01",km:48000,by:"Llantería Norte",place:"Llantería Norte",amount:15,notes:"Presión: 32 PSI"},
+  {id:1,itvId:"oil-engine",service:"Aceite de motor",cat:"Filtros",desc:"Cambio aceite 5W-30 sintético + filtro",date:"2024-06-15",km:45000,by:"AutoShop Pérez",place:"Taller Central",amount:35,notes:"Próximo a 50,000 km"},
+  {id:2,itvId:"brake-pads-front",service:"Pastillas delanteras",cat:"Frenos",desc:"Sustitución pastillas freno delantero",date:"2024-08-20",km:47500,by:"AutoShop Pérez",place:"Taller Central",amount:80,notes:"Revisar discos próximo cambio"},
+  {id:3,itvId:"tire-rotation",service:"Rotación de llantas",cat:"Neumáticos",desc:"Rotación cruzada + calibración presión",date:"2024-09-01",km:48000,by:"Llantería Norte",place:"Llantería Norte",amount:15,notes:"Presión: 32 PSI"},
 ];
 
 const CATS=["Motor","Transmisión","Frenos","Suspensión","Eléctrico","Neumáticos","Filtros","Fluidos","Carrocería","Aire Acondicionado","Inspección","Otros"];
@@ -383,9 +393,14 @@ function App(){
     const file=e.target.files[0];if(!file)return;
     const reader=new FileReader();
     reader.onload=ev=>{
-      const d=pJSON(ev.target.result);
-      if(!d){alert("Archivo inválido");return;}
-      if(window.confirm(`¿Importar datos?\nEsto reemplazará tus registros actuales.\n\nVehículo: ${d.vehicle?.brand||"—"} ${d.vehicle?.model||""}\nRegistros: ${d.records?.length||0}\nExportado: ${d.exportedAt?.slice(0,10)||"—"}`)){
+      const raw=pJSON(ev.target.result);
+      if(!raw){alert("Archivo inválido: no es un JSON legible.");return;}
+      if(!looksLikeBackup(raw)){alert("Ese archivo no parece un backup de AutoManto.\n\nNo se ha modificado nada.");return;}
+      // Punto de entrada 2 de 3: se migra antes de preguntar, para que el
+      // diálogo pueda contar los huérfanos reales y no una estimación.
+      const d=migrate(raw);
+      const sv=orphanCount(d);
+      if(window.confirm(`¿Importar datos?\nEsto reemplazará tus registros actuales.\n\nVehículo: ${d.vehicle?.brand||"—"} ${d.vehicle?.model||""}\nRegistros: ${d.records?.length||0}\nIntervalos: ${d.itvs?.length||0}${sv?`\n\n⚠ ${sv} registro(s) quedarán sin vincular a ningún intervalo.\nSeguirán visibles y podrás vincularlos a mano.`:""}\n\nExportado: ${d.exportedAt?.slice(0,10)||"—"}`)){
         if(d.vehicle){setVehicle(d.vehicle);setVDraft(d.vehicle);}
         if(d.records)setRecords(d.records);
         if(d.itvs)setItvs(d.itvs);

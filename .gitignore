@@ -1,2 +1,8 @@
 # Configuración local de Claude Code (servidor de previsualización, etc.)
 .claude/
+
+# Backups personales de mantenimiento. Nunca a un repo público.
+_backups/
+*.json
+!manifest.webmanifest
+!.claude/launch.json

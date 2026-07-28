@@ -42,7 +42,7 @@ No introducir build step, npm ni imports de módulos sin discutirlo antes (ver �
 
 ```
 automanto/
-├── index.html             ← toda la app (~700 líneas)
+├── index.html             ← toda la app (~810 líneas)
 ├── sw.js                  ← service worker
 ├── manifest.webmanifest   ← manifest PWA
 ├── icon.png               ← ícono 1254×1254, usado como any y maskable
@@ -106,7 +106,17 @@ Es el corazón de la app. Para cada intervalo:
    - `ok` → hay registro previo y no aplica lo anterior
    - `pending` → nunca se ha registrado ese servicio
 
-**⚠️ Punto frágil conocido:** el vínculo registro↔intervalo es por **coincidencia exacta de string** (`service === name`). Por eso `saveItv` reescribe en cascada el campo `service` de los registros al renombrar un intervalo. La migración a un `itvId` estable es la deuda técnica #1 y está planificada.
+**Vínculo registro↔intervalo:** manda `record.itvId`. El nombre sólo se usa como fallback para registros que aún no han pasado por `migrate()`. `record.service` se conserva siempre como etiqueta histórica.
+
+Queda un resto del diseño viejo: `saveItv` todavía reescribe en cascada el `service` de los registros al renombrar un intervalo, y las dos lecturas conservan el fallback por nombre. Ambas cosas se retiran en C4; hasta entonces la app entiende los dos vínculos a propósito, para que no haya un momento de todo o nada.
+
+**Migración** — `migrate()` se aplica en los tres puntos de entrada: `storageLoad()`, `importData()` (antes del `confirm`, para poder contar los huérfanos reales) y los datos semilla, que ya nacen en v2.
+
+No mira `schemaVersion` a propósito: es una etiqueta y puede mentir. `toV2()` decide elemento por elemento y es idempotente, así que se aplica siempre. Un documento marcado como v2 pero sin `itvId` se migra igual.
+
+La migración **no se reescribe a disco al cargar**. Se aplica en memoria y se persiste con el siguiente guardado normal. Evita una escritura silenciosa en cada arranque, y como es idempotente no cuesta nada repetirla.
+
+Ids: los 24 predefinidos usan slugs (`oil-engine`…), mapeados desde el id numérico de v1 vía `LEGACY_ID` — **por id, nunca por nombre**, porque el nombre pudo renombrarse. Los personalizados usan `crypto.randomUUID()`, con fallback para `file://`, donde no hay contexto seguro.
 
 ---
 
@@ -152,13 +162,15 @@ Con stale-while-revalidate se sirve la copia cacheada al instante (rápido y off
 
 ## 8. Deuda técnica y limitaciones (en orden de prioridad)
 
-1. **Vínculo por string** entre registro e intervalo → migrar a `itvId`
+Auditado contra el código el 2026-07-28.
+
+1. **Safari iOS purga el almacenamiento** tras ~7 días de inactividad. **`navigator.storage.persist()` no se pide en ninguna parte** — es la única defensa real y son tres líneas. Prioridad alta: hay indicios de una pérdida previa de 23 intervalos personalizados.
 2. **Un solo vehículo** por instalación → el modelo de datos no contempla flota
 3. **Sin sincronización** — datos locales por dispositivo
-4. **Safari iOS purga el almacenamiento** tras ~7 días de inactividad → mitigado a medias con exportar/importar
+4. **Vínculo por string**: reducido a dos fallbacks de lectura y la cascada de `saveItv`. Se retira en C4
 5. **Sin notificaciones push**
 6. **Babel en el navegador** — compila en cada carga; ahora sale de caché, así que penaliza el arranque pero no la red
-7. **Sin tests, sin validación de esquema** al importar JSON
+7. **Sin tests automatizados**. La validación al importar es mínima: se comprueba que el JSON parsee y que tenga forma de backup, pero no se valida el contenido campo a campo
 8. **`icon.png` pesa 1,5 MB** y se precachea entero; convendría una versión reducida
 
 ---
