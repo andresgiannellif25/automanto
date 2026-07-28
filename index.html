@@ -162,26 +162,40 @@ const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||
    Ojo: esto NO es la defensa contra el borrado a los 7 días de ITP. Esa
    exención la da estar instalada en pantalla de inicio, no esta llamada. */
 async function checkPersistencia(){
+  const info={estado:"na",instalada:isStandalone(),usage:null,quota:null};
   try{
     if(!navigator.storage||!navigator.storage.persist){
       console.info("[AutoManto] Storage API no disponible (Safari <17 o file://): no se puede pedir persistencia.");
-      return;
+      return info;
     }
     let ok=await navigator.storage.persisted();
     const yaEstaba=ok;
     if(!ok)ok=await navigator.storage.persist();
+    info.estado=ok?"ok":"no";
     console.info(`[AutoManto] Almacenamiento persistente: ${ok?"CONCEDIDO":"DENEGADO"}`
-      +` · app ${isStandalone()?"instalada":"en pestaña del navegador"}`
+      +` · app ${info.instalada?"instalada":"en pestaña del navegador"}`
       +(yaEstaba?" · ya lo estaba":"")
       +(ok?"":" · instalar en pantalla de inicio es lo que más ayuda a que se conceda"));
     if(navigator.storage.estimate){
       const e=await navigator.storage.estimate();
+      info.usage=e.usage??null;info.quota=e.quota??null;
       console.info(`[AutoManto] Uso: ${Math.round((e.usage||0)/1024)} KB de ${Math.round((e.quota||0)/1048576)} MB`);
     }
   }catch(err){
     console.warn("[AutoManto] No se pudo consultar la persistencia:",err&&err.message);
+    info.estado="error";
   }
+  return info;
 }
+
+/* Bytes en unidades que se puedan leer de un vistazo. */
+const fmtBytes=n=>{
+  if(n==null||!isFinite(n))return"—";
+  if(n<1024)return n+" B";
+  if(n<1048576)return (n/1024).toFixed(n<10240?1:0)+" KB";
+  if(n<1073741824)return (n/1048576).toFixed(n<10485760?1:0)+" MB";
+  return (n/1073741824).toFixed(1)+" GB";
+};
 
 const todayD=new Date();
 const fmt=d=>{if(!d)return"—";const p=d.split("-");return`${p[2]}/${p[1]}/${p[0]}`;};
@@ -244,6 +258,8 @@ function App(){
   const [swUpd,setSwUpd]=useState(false);   // el SW cacheó una versión distinta
   const [canInst,setCanInst]=useState(false);
   const [iosTip,setIosTip]=useState(false); // iOS no emite beforeinstallprompt
+  const [puedeInst,setPuedeInst]=useState(false); // hay prompt disponible, aunque el banner esté descartado
+  const [stg,setStg]=useState(null);        // diagnóstico de almacenamiento; null = comprobando
   const pRef=useRef(null);                  // evento beforeinstallprompt diferido
 
   const vRef=useRef(vehicle),rRef=useRef(records),iRef=useRef(itvs);
@@ -274,7 +290,16 @@ function App(){
     });
   },[]);
 
-  useEffect(()=>{checkPersistencia();},[]);
+  /* No bloquea el arranque: `loaded` no depende de esto. Mientras stg sea
+     null el bloque de Config muestra un estado neutro, y si la consulta se
+     cuelga, la carrera contra el temporizador lo saca de "Comprobando…". */
+  useEffect(()=>{
+    let vivo=true;
+    const neutro={estado:"error",instalada:isStandalone(),usage:null,quota:null};
+    const limite=new Promise(r=>setTimeout(()=>r(neutro),4000));
+    Promise.race([checkPersistencia(),limite]).then(i=>{if(vivo)setStg(i);}).catch(()=>{if(vivo)setStg(neutro);});
+    return()=>{vivo=false;};
+  },[]);
 
   /* Instalación: Chrome/Android emiten beforeinstallprompt y podemos ofrecer
      el diálogo nativo. iOS no lo emite nunca, así que ahí sólo cabe explicar
@@ -282,12 +307,13 @@ function App(){
   useEffect(()=>{
     if(isStandalone())return;
     let off=false;try{off=localStorage.getItem(DK)==="1";}catch(_){}
-    if(off)return;
-    const hBip=e=>{e.preventDefault();pRef.current=e;setCanInst(true);};
-    const hIns=()=>{setCanInst(false);setIosTip(false);pRef.current=null;};
+    // El evento se captura siempre, aunque el banner esté descartado: si no,
+    // el bloque de Config no tendría cómo ofrecer la instalación.
+    const hBip=e=>{e.preventDefault();pRef.current=e;setPuedeInst(true);if(!off)setCanInst(true);};
+    const hIns=()=>{setCanInst(false);setIosTip(false);setPuedeInst(false);pRef.current=null;};
     window.addEventListener("beforeinstallprompt",hBip);
     window.addEventListener("appinstalled",hIns);
-    if(isIOS())setIosTip(true);
+    if(isIOS()&&!off)setIosTip(true);
     return()=>{window.removeEventListener("beforeinstallprompt",hBip);window.removeEventListener("appinstalled",hIns);};
   },[]);
 
@@ -315,7 +341,7 @@ function App(){
   const doInstall=async()=>{
     const p=pRef.current;if(!p)return;
     p.prompt();await p.userChoice;
-    pRef.current=null;setCanInst(false);
+    pRef.current=null;setCanInst(false);setPuedeInst(false);
   };
   const dismissPWA=()=>{try{localStorage.setItem(DK,"1");}catch(_){}setCanInst(false);setIosTip(false);};
 
@@ -729,6 +755,50 @@ function App(){
               </div>
               <input ref={importRef} type="file" accept=".json" onChange={importData} style={{display:"none"}}/>
             </div>
+
+            {/* ── Estado del almacenamiento ── */}
+            {(()=>{
+              const e=stg?stg.estado:null;
+              const V={
+                null :{c:T.tx4,t:"Comprobando almacenamiento…",d:"Un momento."},
+                error:{c:T.tx4,t:"No se pudo comprobar",d:"El navegador no respondió a tiempo. Tus datos siguen guardados igual."},
+                na   :{c:T.tx4,t:"No disponible en este navegador",d:"Tu versión no permite consultarlo (hace falta iOS 17 o superior). Exportá tus datos de vez en cuando."},
+                ok   :{c:T.gr ,t:"Almacenamiento protegido",d:"El navegador se compromete a no borrar tus datos para liberar espacio."},
+                no   :stg&&stg.instalada
+                  ?{c:T.or,t:"Protección parcial",d:"La app está instalada, que es lo que más protege frente al borrado por inactividad. El navegador no concedió además la marca de persistencia."}
+                  :{c:T.rd,t:"Sin proteger",d:"Safari borra los datos de las pestañas tras unos 7 días sin abrir el sitio. Instalá la app en la pantalla de inicio para que eso deje de aplicarte."},
+              };
+              const v=V[e]||V[null];
+              const accionable=e==="no"&&stg&&!stg.instalada;
+              return(
+                <>
+                  <div style={sh}>Almacenamiento</div>
+                  <div style={{...card(),marginBottom:20}}>
+                    <div style={{...rrow({borderBottom:(accionable||(stg&&stg.usage!=null))?`0.5px solid ${T.sp}`:"none"}),gap:11,alignItems:"flex-start"}}>
+                      <div style={{width:9,height:9,borderRadius:"50%",background:v.c,flexShrink:0,marginTop:5}}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:500,fontSize:15,color:T.tx}}>{v.t}</div>
+                        <div style={{fontSize:12,color:T.tx3,marginTop:2,lineHeight:1.45}}>{v.d}</div>
+                      </div>
+                    </div>
+                    {accionable&&(
+                      <div style={{...rrow({borderBottom:stg&&stg.usage!=null?`0.5px solid ${T.sp}`:"none"}),justifyContent:"space-between",gap:10}}>
+                        <div style={{fontSize:12,color:T.tx3,flex:1,minWidth:0}}>
+                          {puedeInst?"Instalala y el navegador dejará de contar los 7 días.":"Pulsá Compartir y luego «Añadir a pantalla de inicio»."}
+                        </div>
+                        {puedeInst&&<button onClick={doInstall} style={{background:T.ac,color:"#fff",border:"none",borderRadius:16,padding:"6px 14px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Instalar</button>}
+                      </div>
+                    )}
+                    {stg&&stg.usage!=null&&(
+                      <div style={{...rrow({borderBottom:"none"}),justifyContent:"space-between"}}>
+                        <span style={{fontSize:13,color:T.tx3}}>Espacio usado</span>
+                        <span style={{fontSize:13,color:T.tx2,fontWeight:500}}>{fmtBytes(stg.usage)}{stg.quota!=null?` de ${fmtBytes(stg.quota)}`:""}</span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
 
             <div style={sh}>Predefinidos</div>
             <div style={card()}>
