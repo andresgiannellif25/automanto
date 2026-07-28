@@ -48,31 +48,77 @@ const EMPTY_F={service:"",cat:"",desc:"",date:"",km:"",by:"",place:"",amount:"",
 const EMPTY_I={name:"",cat:"",km:"",days:"",note:""};
 
 const DEFAULT_INT=[
-  {id:1,cat:"Filtros",name:"Aceite de motor",km:5000,days:180,note:"Sintético puede llegar a 7,500 km",custom:false},
-  {id:2,cat:"Filtros",name:"Filtro de aceite",km:5000,days:180,note:"Cambiar junto con aceite",custom:false},
-  {id:3,cat:"Filtros",name:"Filtro de aire",km:15000,days:365,note:"Revisar condición cada 10,000 km",custom:false},
-  {id:4,cat:"Filtros",name:"Filtro de combustible",km:30000,days:730,note:"Gasolina; diesel cada 15,000 km",custom:false},
-  {id:5,cat:"Filtros",name:"Filtro de habitáculo",km:15000,days:365,note:"Polvo / carbón activado",custom:false},
-  {id:6,cat:"Fluidos",name:"Líquido refrigerante",km:40000,days:730,note:"Revisar nivel cada 10,000 km",custom:false},
-  {id:7,cat:"Fluidos",name:"Líquido de frenos",km:30000,days:730,note:"DOT 4 – higroscópico",custom:false},
-  {id:8,cat:"Fluidos",name:"Fluido de transmisión",km:40000,days:0,note:"Automática: revisión 30,000 km",custom:false},
-  {id:9,cat:"Frenos",name:"Pastillas delanteras",km:25000,days:0,note:"Revisar grosor cada 15,000 km",custom:false},
-  {id:10,cat:"Frenos",name:"Pastillas traseras",km:35000,days:0,note:"Suelen durar más que delanteras",custom:false},
-  {id:11,cat:"Frenos",name:"Discos de freno",km:60000,days:0,note:"Medir espesor mínimo",custom:false},
-  {id:12,cat:"Suspensión",name:"Amortiguadores",km:80000,days:0,note:"Revisar fugas u oscilación",custom:false},
-  {id:13,cat:"Suspensión",name:"Rótulas / Bieletas",km:60000,days:0,note:"Inspección en cada alineación",custom:false},
-  {id:14,cat:"Neumáticos",name:"Rotación de llantas",km:8000,days:180,note:"Cruzada para desgaste uniforme",custom:false},
-  {id:15,cat:"Neumáticos",name:"Alineación y balanceo",km:10000,days:365,note:"Después de golpes fuertes",custom:false},
-  {id:16,cat:"Neumáticos",name:"Sustitución neumáticos",km:50000,days:1825,note:"Según profundidad de labrado",custom:false},
-  {id:17,cat:"Motor",name:"Bujías",km:30000,days:0,note:"Platino: 60k / Iridio: 100k km",custom:false},
-  {id:18,cat:"Motor",name:"Banda de distribución",km:60000,days:1825,note:"Crítico – no omitir",custom:false},
-  {id:19,cat:"Motor",name:"Banda de accesorios",km:60000,days:1825,note:"Revisar tensión y grietas",custom:false},
-  {id:20,cat:"Eléctrico",name:"Batería",km:0,days:1460,note:"Revisar voltaje cada 2 años",custom:false},
-  {id:21,cat:"Eléctrico",name:"Alternador",km:0,days:1825,note:"Revisar con batería",custom:false},
-  {id:22,cat:"Aire Acondicionado",name:"Limpieza condensador",km:20000,days:365,note:"Antes de temporada de calor",custom:false},
-  {id:23,cat:"Aire Acondicionado",name:"Recarga gas refrigerante",km:0,days:730,note:"R134a o R1234yf",custom:false},
-  {id:24,cat:"Inspección",name:"Revisión técnica general",km:0,days:365,note:"Según regulación local",custom:false},
+  {id:"oil-engine",cat:"Filtros",name:"Aceite de motor",km:5000,days:180,note:"Sintético puede llegar a 7,500 km",custom:false},
+  {id:"oil-filter",cat:"Filtros",name:"Filtro de aceite",km:5000,days:180,note:"Cambiar junto con aceite",custom:false},
+  {id:"air-filter",cat:"Filtros",name:"Filtro de aire",km:15000,days:365,note:"Revisar condición cada 10,000 km",custom:false},
+  {id:"fuel-filter",cat:"Filtros",name:"Filtro de combustible",km:30000,days:730,note:"Gasolina; diesel cada 15,000 km",custom:false},
+  {id:"cabin-filter",cat:"Filtros",name:"Filtro de habitáculo",km:15000,days:365,note:"Polvo / carbón activado",custom:false},
+  {id:"coolant",cat:"Fluidos",name:"Líquido refrigerante",km:40000,days:730,note:"Revisar nivel cada 10,000 km",custom:false},
+  {id:"brake-fluid",cat:"Fluidos",name:"Líquido de frenos",km:30000,days:730,note:"DOT 4 – higroscópico",custom:false},
+  {id:"transmission-fluid",cat:"Fluidos",name:"Fluido de transmisión",km:40000,days:0,note:"Automática: revisión 30,000 km",custom:false},
+  {id:"brake-pads-front",cat:"Frenos",name:"Pastillas delanteras",km:25000,days:0,note:"Revisar grosor cada 15,000 km",custom:false},
+  {id:"brake-pads-rear",cat:"Frenos",name:"Pastillas traseras",km:35000,days:0,note:"Suelen durar más que delanteras",custom:false},
+  {id:"brake-discs",cat:"Frenos",name:"Discos de freno",km:60000,days:0,note:"Medir espesor mínimo",custom:false},
+  {id:"shock-absorbers",cat:"Suspensión",name:"Amortiguadores",km:80000,days:0,note:"Revisar fugas u oscilación",custom:false},
+  {id:"ball-joints",cat:"Suspensión",name:"Rótulas / Bieletas",km:60000,days:0,note:"Inspección en cada alineación",custom:false},
+  {id:"tire-rotation",cat:"Neumáticos",name:"Rotación de llantas",km:8000,days:180,note:"Cruzada para desgaste uniforme",custom:false},
+  {id:"wheel-alignment",cat:"Neumáticos",name:"Alineación y balanceo",km:10000,days:365,note:"Después de golpes fuertes",custom:false},
+  {id:"tire-replacement",cat:"Neumáticos",name:"Sustitución neumáticos",km:50000,days:1825,note:"Según profundidad de labrado",custom:false},
+  {id:"spark-plugs",cat:"Motor",name:"Bujías",km:30000,days:0,note:"Platino: 60k / Iridio: 100k km",custom:false},
+  {id:"timing-belt",cat:"Motor",name:"Banda de distribución",km:60000,days:1825,note:"Crítico – no omitir",custom:false},
+  {id:"serpentine-belt",cat:"Motor",name:"Banda de accesorios",km:60000,days:1825,note:"Revisar tensión y grietas",custom:false},
+  {id:"battery",cat:"Eléctrico",name:"Batería",km:0,days:1460,note:"Revisar voltaje cada 2 años",custom:false},
+  {id:"alternator",cat:"Eléctrico",name:"Alternador",km:0,days:1825,note:"Revisar con batería",custom:false},
+  {id:"ac-condenser-clean",cat:"Aire Acondicionado",name:"Limpieza condensador",km:20000,days:365,note:"Antes de temporada de calor",custom:false},
+  {id:"ac-refrigerant",cat:"Aire Acondicionado",name:"Recarga gas refrigerante",km:0,days:730,note:"R134a o R1234yf",custom:false},
+  {id:"general-inspection",cat:"Inspección",name:"Revisión técnica general",km:0,days:365,note:"Según regulación local",custom:false},
 ];
+
+/* Equivalencia entre los ids numéricos 1–24 de v1 y los slugs estables de v2.
+   El migrador mapea por este id numérico y NO por el nombre: el nombre pudo
+   haberse renombrado, el id numérico sobrevivió a cualquier renombre. */
+const LEGACY_ID={
+  1:"oil-engine",2:"oil-filter",3:"air-filter",4:"fuel-filter",5:"cabin-filter",
+  6:"coolant",7:"brake-fluid",8:"transmission-fluid",
+  9:"brake-pads-front",10:"brake-pads-rear",11:"brake-discs",
+  12:"shock-absorbers",13:"ball-joints",
+  14:"tire-rotation",15:"wheel-alignment",16:"tire-replacement",
+  17:"spark-plugs",18:"timing-belt",19:"serpentine-belt",
+  20:"battery",21:"alternator",
+  22:"ac-condenser-clean",23:"ac-refrigerant",24:"general-inspection",
+};
+
+/* ── Migración de esquema ──
+   Es aditiva y no destruye nada: añade `itvId` a los registros y conserva
+   `record.service` como etiqueta histórica. Eso da compatibilidad en ambos
+   sentidos: un backup v1 se convierte al vuelo, y un documento v2 abierto por
+   un build v1 sigue funcionando porque v1 lee `service`, que nunca se borra. */
+const newItvId=()=>{
+  try{if(typeof crypto!=="undefined"&&crypto.randomUUID)return crypto.randomUUID();}catch(_){}
+  // randomUUID exige contexto seguro; en file:// no existe.
+  return "itv-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
+};
+
+function m1to2(d){
+  const itvs=Array.isArray(d.itvs)?d.itvs:[];
+  const nItvs=itvs.map(x=>{
+    if(typeof x.id==="string"&&x.id)return{...x};   // ya tiene id estable
+    const slug=x.custom?null:LEGACY_ID[x.id];
+    return{...x,id:slug||newItvId()};
+  });
+  // Último uso del vínculo por nombre: de aquí en adelante manda itvId.
+  const byName=new Map();
+  nItvs.forEach(x=>{if(!byName.has(x.name))byName.set(x.name,x.id);});
+  const recs=Array.isArray(d.records)?d.records:[];
+  const nRecs=recs.map(r=>("itvId" in r)?{...r}:{...r,itvId:byName.has(r.service)?byName.get(r.service):null});
+  return{...d,itvs:nItvs,records:nRecs,schemaVersion:2};
+}
+
+function migrate(doc){
+  if(!doc||typeof doc!=="object"||Array.isArray(doc))return doc;
+  const v=Number(doc.schemaVersion)||1;   // sin el campo ⇒ es v1
+  return v<2?m1to2(doc):doc;
+}
 
 const SAMPLE_R=[
   {id:1,service:"Aceite de motor",cat:"Filtros",desc:"Cambio aceite 5W-30 sintético + filtro",date:"2024-06-15",km:45000,by:"AutoShop Pérez",place:"Taller Central",amount:35,notes:"Próximo a 50,000 km"},
@@ -257,7 +303,8 @@ function App(){
   const dispR=demo?SAMPLE_R:records;
 
   const tracking=useMemo(()=>itvs.map(iv=>{
-    const ms=dispR.filter(r=>r.service===iv.name).sort((a,b)=>new Date(b.date)-new Date(a.date)||b.km-a.km);
+    // itvId manda; el nombre sólo se usa para registros aún sin migrar.
+    const ms=dispR.filter(r=>r.itvId!=null?r.itvId===iv.id:r.service===iv.name).sort((a,b)=>new Date(b.date)-new Date(a.date)||b.km-a.km);
     const last=ms[0]||null,lKm=last?last.km:0,lDt=last?last.date:null;
     let kmL=null,dL=null,nKm=null,nDt=null;
     if(iv.km>0&&lKm>0){nKm=lKm+iv.km;kmL=km0>0?nKm-km0:null;}
@@ -295,7 +342,7 @@ function App(){
     const prev=itvs.find(x=>x.id===editIId);
     const oldName=prev?.name;
     const entry={cat:ifrm.cat,name:ifrm.name,km:kv,days:dv,note:ifrm.note,custom:prev?prev.custom:true};
-    const nextItvs=editIId?itvs.map(x=>x.id===editIId?{...entry,id:editIId}:x):[...itvs,{...entry,id:Date.now()}];
+    const nextItvs=editIId?itvs.map(x=>x.id===editIId?{...entry,id:editIId}:x):[...itvs,{...entry,id:newItvId()}];
     // If name changed, update matching records too
     let nextRecs=records;
     if(editIId&&oldName&&oldName!==ifrm.name){
@@ -458,7 +505,7 @@ function App(){
               {[...dispR].sort((a,b)=>new Date(b.date)-new Date(a.date)||b.km-a.km).slice(0,5).map((r,i,a)=>(
                 <div key={r.id} onClick={()=>{if(!demo)openEdit(r);}} style={{...rrow({borderBottom:i<a.length-1?`0.5px solid ${T.sp}`:"none",cursor:demo?"default":"pointer"}),gap:12}}>
                   <div style={{width:38,height:38,borderRadius:10,background:`${CC[r.cat]||"#636366"}22`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    {(()=>{const tr=tracking.find(t=>t.name===r.service);const c=tr?sc(tr.st):CC[r.cat]||"#636366";const sz=tr&&tr.st==="overdue"?14:tr&&tr.st==="soon"?11:9;return<div style={{width:sz,height:sz,borderRadius:"50%",background:c,transition:"all .3s",boxShadow:`0 0 ${tr?.st==="overdue"?6:3}px ${c}88`}}/>;})()}
+                    {(()=>{const tr=tracking.find(t=>r.itvId!=null?t.id===r.itvId:t.name===r.service);const c=tr?sc(tr.st):CC[r.cat]||"#636366";const sz=tr&&tr.st==="overdue"?14:tr&&tr.st==="soon"?11:9;return<div style={{width:sz,height:sz,borderRadius:"50%",background:c,transition:"all .3s",boxShadow:`0 0 ${tr?.st==="overdue"?6:3}px ${c}88`}}/>;})()}
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:500,fontSize:15,color:T.tx,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.service}</div>
