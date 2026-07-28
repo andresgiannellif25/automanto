@@ -99,7 +99,12 @@ const newItvId=()=>{
   return "itv-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
 };
 
-function m1to2(d){
+/* Lleva un documento cualquiera a la forma v2, mire lo que mire su etiqueta.
+   Cada decisión es local: un intervalo con id de tipo string ya está migrado;
+   un registro que ya tiene la clave itvId se respeta tal cual, incluso si vale
+   null (es un huérfano conocido, y C3 dará la acción para vincularlo a mano).
+   Por eso es idempotente y puede aplicarse cuantas veces haga falta. */
+function toV2(d){
   const itvs=Array.isArray(d.itvs)?d.itvs:[];
   const nItvs=itvs.map(x=>{
     if(typeof x.id==="string"&&x.id)return{...x};   // ya tiene id estable
@@ -116,8 +121,12 @@ function m1to2(d){
 
 function migrate(doc){
   if(!doc||typeof doc!=="object"||Array.isArray(doc))return doc;
-  const v=Number(doc.schemaVersion)||1;   // sin el campo ⇒ es v1
-  return v<2?m1to2(doc):doc;
+  /* No se mira schemaVersion a propósito. Ese campo es una etiqueta, y una
+     etiqueta puede mentir: un documento marcado como v2 pero sin itvId se
+     saltaría la migración y quedaría sin vincular en silencio, para siempre.
+     toV2 decide elemento por elemento y es idempotente, así que aplicarlo
+     siempre no cuesta nada y no depende de que nadie haya etiquetado bien. */
+  return toV2(doc);
 }
 
 const SAMPLE_R=[
