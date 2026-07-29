@@ -106,7 +106,10 @@ const newItvId=()=>{
    null (es un huérfano conocido, y C3 dará la acción para vincularlo a mano).
    Por eso es idempotente y puede aplicarse cuantas veces haga falta. */
 function toV2(d){
-  const itvs=Array.isArray(d.itvs)?d.itvs:[];
+  /* Si el documento no trae lista de intervalos, se parte de los de fábrica:
+     es lo que la app usaría de todos modos. Devolver [] dejaría al usuario sin
+     ningún intervalo, porque un array vacío pasa el guardia `if(d.itvs)`. */
+  const itvs=Array.isArray(d.itvs)?d.itvs:DEFAULT_INT;
   const nItvs=itvs.map(x=>{
     if(typeof x.id==="string"&&x.id)return{...x};   // ya tiene id estable
     const slug=x.custom?null:LEGACY_ID[x.id];
@@ -420,15 +423,36 @@ function App(){
   const sc=s=>s==="overdue"?T.rd:s==="soon"?T.or:s==="ok"?T.gr:T.tx4;
   const sl=s=>s==="overdue"?"Vencido":s==="soon"?"Próximo":s==="ok"?"Al día":"Sin datos";
 
-  const openAdd=()=>{setForm({...EMPTY_F});setEditId(null);setShowRec(true);};
-  const openEdit=r=>{setForm({...r,km:String(r.km),amount:String(r.amount)});setEditId(r.id);setShowRec(true);};
+  /* form.itvId tiene tres valores posibles y cada uno significa algo distinto:
+       undefined → todavía no se eligió nada (formulario nuevo)
+       null      → "Otro", deliberadamente sin seguimiento
+       string    → vinculado a ese intervalo                                  */
+  const openAdd=()=>{setForm({...EMPTY_F,itvId:undefined});setEditId(null);setShowRec(true);};
+  const openEdit=r=>{setForm({...r,itvId:r.itvId===undefined?null:r.itvId,km:String(r.km),amount:String(r.amount)});setEditId(r.id);setShowRec(true);};
+  const pickItv=v=>{
+    // Al pasar de un intervalo a "Otro" se limpia lo que se había
+    // autocompletado: si no, el nombre y la categoría del intervalo abandonado
+    // quedarían pegados a un servicio que no tiene nada que ver.
+    if(v==="__otro"){setForm(x=>x.itvId?{...x,itvId:null,service:"",cat:""}:{...x,itvId:null});return;}
+    const iv=itvs.find(i=>i.id===v);if(!iv)return;
+    // Elegir el intervalo fija también la categoría: antes se podían desalinear
+    // y la tarjeta salía con el color de otra categoría.
+    setForm(x=>({...x,itvId:v,service:iv.name,cat:iv.cat}));
+  };
+  const recOK=!!form.date&&!!form.service&&form.itvId!==undefined;
   const saveRec=()=>{
-    if(!form.service||!form.date)return;
-    const rec={...form,km:parseFloat(form.km)||0,amount:parseFloat(form.amount)||0};
+    if(!recOK)return;
+    const rec={...form,itvId:form.itvId??null,km:parseFloat(form.km)||0,amount:parseFloat(form.amount)||0};
     const next=editId?records.map(r=>r.id===editId?{...rec,id:editId}:r):[...records,{...rec,id:Date.now()}];
     setRecords(next);save(null,next,null);setShowRec(false);setEditId(null);
   };
   const delRec=id=>{const next=records.filter(r=>r.id!==id);setRecords(next);save(null,next,null);};
+  /* Vincular un huérfano desde la lista, sin abrir el formulario entero. */
+  const linkRec=(rid,itvId)=>{
+    const iv=itvs.find(x=>x.id===itvId);if(!iv)return;
+    const next=records.map(r=>r.id===rid?{...r,itvId,cat:iv.cat}:r);
+    setRecords(next);save(null,next,null);
+  };
 
   const openAddI=()=>{setIfrm({...EMPTY_I});setEditIId(null);setShowItv(true);};
   const openEditI=useCallback(x=>{setIfrm({name:x.name,cat:x.cat,km:String(x.km),days:String(x.days),note:x.note||""});setEditIId(x.id);setShowItv(true);},[records]);
@@ -720,6 +744,18 @@ function App(){
                       <span style={{fontSize:12,color:T.tx3}}>{(r.km||0).toLocaleString()} km</span>
                       <span style={{fontSize:12,color:T.tx3}}>{r.by}</span>
                     </div>
+                    {r.itvId==null&&!demo&&(
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginTop:10,padding:"9px 11px",background:`${T.or}14`,border:`0.5px solid ${T.or}44`,borderRadius:10,flexWrap:"wrap"}}>
+                        <div style={{flex:1,minWidth:130}}>
+                          <div style={{fontSize:12,fontWeight:600,color:T.or}}>Sin seguimiento</div>
+                          <div style={{fontSize:11,color:T.tx3,marginTop:1,lineHeight:1.35}}>No cuenta para ningún intervalo.</div>
+                        </div>
+                        <select value="" onChange={e=>{if(e.target.value)linkRec(r.id,e.target.value);}} style={{...inp({padding:"6px 8px",fontSize:12,width:"auto"}),maxWidth:180,flexShrink:0}}>
+                          <option value="">Vincular a…</option>
+                          {itvs.map(i=><option key={i.id} value={i.id}>{i.name}</option>)}
+                        </select>
+                      </div>
+                    )}
                   </div>
                   {!demo&&<div style={{display:"flex",borderTop:`0.5px solid ${T.sp}`}}>
                     <button onClick={()=>openEdit(r)} style={{flex:1,padding:"10px",background:"none",border:"none",cursor:"pointer",fontSize:14,color:T.ac,fontWeight:500,borderRight:`0.5px solid ${T.sp}`}}>Editar</button>
@@ -848,7 +884,7 @@ function App(){
             </div>
             <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:14}}>
               {[
-                {f:"service",l:"Servicio / Pieza",t:"text",ph:"Escribe o selecciona...",list:"sl"},
+                {f:"service",l:"Servicio / Pieza",t:"itv"},
                 {f:"cat",l:"Categoría",t:"select"},
                 {f:"date",l:"Fecha",t:"date"},
                 {f:"km",l:"Km al realizar",t:"number",ph:"ej. 47500"},
@@ -860,7 +896,21 @@ function App(){
               ].map(({f,l,t,ph,list})=>(
                 <div key={f}>
                   <label style={lbl}>{l}</label>
-                  {t==="select"?(
+                  {t==="itv"?(
+                    <>
+                      <select value={form.itvId===undefined?"":form.itvId===null?"__otro":form.itvId} onChange={e=>pickItv(e.target.value)} style={inp()}>
+                        <option value="" disabled>Seleccionar…</option>
+                        {itvs.map(i=><option key={i.id} value={i.id}>{i.name}</option>)}
+                        <option value="__otro">Otro (sin seguimiento)</option>
+                      </select>
+                      {form.itvId===null&&(
+                        <>
+                          <input value={form.service} onChange={e=>setForm(x=>({...x,service:e.target.value}))} placeholder="¿Qué se hizo?" style={inp({marginTop:8})}/>
+                          <div style={{fontSize:11,color:T.tx4,marginTop:4,lineHeight:1.4}}>Quedará registrado y sumará al gasto, pero no contará para ningún intervalo.</div>
+                        </>
+                      )}
+                    </>
+                  ):t==="select"?(
                     <select value={form.cat} onChange={e=>setForm(x=>({...x,cat:e.target.value}))} style={inp()}>
                       <option value="">Seleccionar...</option>
                       {CATS.map(c=><option key={c}>{c}</option>)}
@@ -875,7 +925,7 @@ function App(){
                   )}
                 </div>
               ))}
-              <button onClick={saveRec} disabled={!form.service||!form.date} style={{padding:"14px",background:(!form.service||!form.date)?T.bg4:T.ac,color:(!form.service||!form.date)?T.tx3:"#fff",border:"none",borderRadius:12,cursor:"pointer",fontWeight:700,fontSize:17}}>
+              <button onClick={saveRec} disabled={!recOK} style={{padding:"14px",background:recOK?T.ac:T.bg4,color:recOK?"#fff":T.tx3,border:"none",borderRadius:12,cursor:"pointer",fontWeight:700,fontSize:17}}>
                 {editId?"Guardar cambios":"Agregar registro"}
               </button>
             </div>
