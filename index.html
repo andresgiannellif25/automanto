@@ -153,6 +153,23 @@ const DK="automanto_pwa_dismiss";
 const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 
+/* Safari de verdad. Ojo: casi todos los UA llevan "Safari/537.36", incluido
+   Chrome, así que hay que excluir los motores Chromium explícitamente. */
+const isSafari=()=>{const ua=navigator.userAgent;return /Safari\//.test(ua)&&!/Chrome\/|Chromium\/|Edg\/|OPR\/|Android/.test(ua);};
+
+/* El borrado a los ~7 días es de WebKit/ITP: aplica en Safari y en todo iOS,
+   donde cualquier navegador usa WebKit por obligación. En Chrome o Firefox de
+   escritorio el riesgo es otro: desalojo si hace falta espacio. Advertir de
+   los 7 días donde no aplica sería mentirle al usuario. */
+const aplicaPurga7d=()=>isIOS()||isSafari();
+
+/* Cómo se instala en este navegador. Que no haya prompt nativo NO implica que
+   estemos en iOS: puede ser Firefox, un shell embebido, o que las heurísticas
+   del navegador todavía no lo hayan ofrecido. */
+const comoInstalar=()=>isIOS()?"Pulsá Compartir y luego «Añadir a pantalla de inicio»."
+  :isSafari()?"En Safari: menú Archivo → «Añadir al Dock»."
+  :"Buscá «Instalar aplicación» o «Añadir a la pantalla de inicio» en el menú de tu navegador.";
+
 /* Persistencia del almacenamiento (deuda #4).
    persist() es un PEDIDO, no una orden: el navegador decide y puede negarlo.
    WebKit lo concede por heurísticas, sobre todo si la app está instalada en
@@ -306,14 +323,16 @@ function App(){
      el gesto manual. Si ya está instalada, no molestamos. */
   useEffect(()=>{
     if(isStandalone())return;
-    let off=false;try{off=localStorage.getItem(DK)==="1";}catch(_){}
     // El evento se captura siempre, aunque el banner esté descartado: si no,
     // el bloque de Config no tendría cómo ofrecer la instalación.
-    const hBip=e=>{e.preventDefault();pRef.current=e;setPuedeInst(true);if(!off)setCanInst(true);};
+    // El descarte se relee en cada uso: si se descartó a mitad de sesión, un
+    // valor capturado al montar estaría obsoleto y el banner volvería.
+    const descartado=()=>{try{return localStorage.getItem(DK)==="1";}catch(_){return false;}};
+    const hBip=e=>{e.preventDefault();pRef.current=e;setPuedeInst(true);if(!descartado())setCanInst(true);};
     const hIns=()=>{setCanInst(false);setIosTip(false);setPuedeInst(false);pRef.current=null;};
     window.addEventListener("beforeinstallprompt",hBip);
     window.addEventListener("appinstalled",hIns);
-    if(isIOS()&&!off)setIosTip(true);
+    if(isIOS()&&!descartado())setIosTip(true);
     return()=>{window.removeEventListener("beforeinstallprompt",hBip);window.removeEventListener("appinstalled",hIns);};
   },[]);
 
@@ -765,8 +784,12 @@ function App(){
                 na   :{c:T.tx4,t:"No disponible en este navegador",d:"Tu versión no permite consultarlo (hace falta iOS 17 o superior). Exportá tus datos de vez en cuando."},
                 ok   :{c:T.gr ,t:"Almacenamiento protegido",d:"El navegador se compromete a no borrar tus datos para liberar espacio."},
                 no   :stg&&stg.instalada
-                  ?{c:T.or,t:"Protección parcial",d:"La app está instalada, que es lo que más protege frente al borrado por inactividad. El navegador no concedió además la marca de persistencia."}
-                  :{c:T.rd,t:"Sin proteger",d:"Safari borra los datos de las pestañas tras unos 7 días sin abrir el sitio. Instalá la app en la pantalla de inicio para que eso deje de aplicarte."},
+                  ?{c:T.or,t:"Protección parcial",d:aplicaPurga7d()
+                      ?"La app está instalada, que es lo que te libra del borrado por inactividad. El navegador no concedió además la marca de persistencia."
+                      :"La app está instalada. El navegador no concedió además la marca de persistencia, así que podría borrar datos si necesitara espacio."}
+                  :{c:T.rd,t:"Sin proteger",d:aplicaPurga7d()
+                      ?"Safari borra los datos de las pestañas tras unos 7 días sin abrir el sitio. Instalá la app para que eso deje de aplicarte."
+                      :"El navegador puede borrar los datos si necesita espacio. Instalar la app hace que los trate como permanentes."},
               };
               const v=V[e]||V[null];
               const accionable=e==="no"&&stg&&!stg.instalada;
@@ -784,7 +807,9 @@ function App(){
                     {accionable&&(
                       <div style={{...rrow({borderBottom:stg&&stg.usage!=null?`0.5px solid ${T.sp}`:"none"}),justifyContent:"space-between",gap:10}}>
                         <div style={{fontSize:12,color:T.tx3,flex:1,minWidth:0}}>
-                          {puedeInst?"Instalala y el navegador dejará de contar los 7 días.":"Pulsá Compartir y luego «Añadir a pantalla de inicio»."}
+                          {puedeInst
+                            ?(aplicaPurga7d()?"Instalala y el contador de 7 días deja de aplicarte.":"Instalala para que el navegador conserve sus datos.")
+                            :comoInstalar()}
                         </div>
                         {puedeInst&&<button onClick={doInstall} style={{background:T.ac,color:"#fff",border:"none",borderRadius:16,padding:"6px 14px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Instalar</button>}
                       </div>
