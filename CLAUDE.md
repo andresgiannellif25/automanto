@@ -106,9 +106,11 @@ Es el corazón de la app. Para cada intervalo:
    - `ok` → hay registro previo y no aplica lo anterior
    - `pending` → nunca se ha registrado ese servicio
 
-**Vínculo registro↔intervalo:** manda `record.itvId`. El nombre sólo se usa como fallback para registros que aún no han pasado por `migrate()`. `record.service` se conserva siempre como etiqueta histórica.
+**Vínculo registro↔intervalo: `record.itvId`, y sólo eso.** No queda ninguna comparación por nombre. `record.service` se conserva como etiqueta histórica —lo que se escribió aquel día— y no participa en el cálculo.
 
-Queda un resto del diseño viejo: `saveItv` todavía reescribe en cascada el `service` de los registros al renombrar un intervalo, y las dos lecturas conservan el fallback por nombre. Ambas cosas se retiran en C4; hasta entonces la app entiende los dos vínculos a propósito, para que no haya un momento de todo o nada.
+Consecuencia buscada: renombrar un intervalo **no toca los registros**. El vínculo sobrevive porque es el id, así que ya no existe la cascada que reescribía `service`. En Seguimiento se ve el nombre actual del intervalo; en Registros, el texto original de cada servicio. Que difieran es correcto, no un fallo.
+
+**Registros sueltos** (`suelto()`): un registro está suelto si `itvId` es null —"Otro", elegido a propósito— o si apunta a un intervalo que ya no existe, típicamente uno personalizado que se borró. El segundo caso era invisible: el id no era null, así que no saltaba ningún aviso, y no casaba con nada, así que tampoco contaba en ninguna parte. Los dos casos muestran ahora el aviso "Sin seguimiento" con la acción "Vincular a…" en la pestaña Registros.
 
 **Migración** — `migrate()` se aplica en los tres puntos de entrada: `storageLoad()`, `importData()` (antes del `confirm`, para poder contar los huérfanos reales) y los datos semilla, que ya nacen en v2.
 
@@ -177,7 +179,7 @@ Auditado contra el código el 2026-07-28.
    **Riesgo residual:** un usuario que abra la app en una pestaña y nunca la instale sigue expuesto exactamente igual que antes. La única mitigación para él sigue siendo exportar a mano.
 2. **Un solo vehículo** por instalación → el modelo de datos no contempla flota
 3. **Sin sincronización** — datos locales por dispositivo
-4. **Vínculo por string**: reducido a dos fallbacks de lectura y la cascada de `saveItv`. Se retira en C4
+4. ~~**Vínculo por string**~~ — **saldado**. El vínculo es `itvId` desde C1–C4; no queda ninguna comparación por nombre en el código
 5. **Sin notificaciones push**
 6. **Babel en el navegador** — compila en cada carga; ahora sale de caché, así que penaliza el arranque pero no la red
 7. **Sin tests automatizados**. La validación al importar es mínima: se comprueba que el JSON parsee y que tenga forma de backup, pero no se valida el contenido campo a campo

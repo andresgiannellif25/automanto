@@ -401,9 +401,15 @@ function App(){
   const demo=!seeded;
   const dispR=demo?SAMPLE_R:records;
 
+  /* Un registro está suelto si no apunta a nada o si apunta a un intervalo que
+     ya no existe — por ejemplo uno personalizado que se borró. El segundo caso
+     no se veía: el id no era null, así que no salía el aviso, y no casaba con
+     ningún intervalo, así que tampoco contaba en ninguna parte. */
+  const itvIds=useMemo(()=>new Set(itvs.map(x=>x.id)),[itvs]);
+  const suelto=r=>r.itvId==null||!itvIds.has(r.itvId);
+
   const tracking=useMemo(()=>itvs.map(iv=>{
-    // itvId manda; el nombre sólo se usa para registros aún sin migrar.
-    const ms=dispR.filter(r=>r.itvId!=null?r.itvId===iv.id:r.service===iv.name).sort((a,b)=>new Date(b.date)-new Date(a.date)||b.km-a.km);
+    const ms=dispR.filter(r=>r.itvId===iv.id).sort((a,b)=>new Date(b.date)-new Date(a.date)||b.km-a.km);
     const last=ms[0]||null,lKm=last?last.km:0,lDt=last?last.date:null;
     let kmL=null,dL=null,nKm=null,nDt=null;
     if(iv.km>0&&lKm>0){nKm=lKm+iv.km;kmL=km0>0?nKm-km0:null;}
@@ -460,16 +466,13 @@ function App(){
     if(!ifrm.name||!ifrm.cat)return;
     const kv=parseInt(ifrm.km)||0,dv=parseInt(ifrm.days)||0;
     const prev=itvs.find(x=>x.id===editIId);
-    const oldName=prev?.name;
     const entry={cat:ifrm.cat,name:ifrm.name,km:kv,days:dv,note:ifrm.note,custom:prev?prev.custom:true};
     const nextItvs=editIId?itvs.map(x=>x.id===editIId?{...entry,id:editIId}:x):[...itvs,{...entry,id:newItvId()}];
-    // If name changed, update matching records too
-    let nextRecs=records;
-    if(editIId&&oldName&&oldName!==ifrm.name){
-      nextRecs=records.map(r=>r.service===oldName?{...r,service:ifrm.name}:r);
-      setRecords(nextRecs);
-    }
-    setItvs(nextItvs);save(null,nextRecs,nextItvs);setShowItv(false);setEditIId(null);
+    /* Aquí vivía la cascada que reescribía el `service` de los registros al
+       renombrar un intervalo. Ya no hace falta: el vínculo es itvId y sobrevive
+       al cambio de nombre. `service` se queda con lo que se escribió aquel día,
+       que es lo que debe ser. */
+    setItvs(nextItvs);save(null,null,nextItvs);setShowItv(false);setEditIId(null);
   };
   const delItv=useCallback(id=>{setItvs(prev=>{const next=prev.filter(x=>x.id!==id);save(null,null,next);return next;});},[]);
   const commitItv=useCallback((id,field,val)=>{
@@ -630,7 +633,7 @@ function App(){
               {[...dispR].sort((a,b)=>new Date(b.date)-new Date(a.date)||b.km-a.km).slice(0,5).map((r,i,a)=>(
                 <div key={r.id} onClick={()=>{if(!demo)openEdit(r);}} style={{...rrow({borderBottom:i<a.length-1?`0.5px solid ${T.sp}`:"none",cursor:demo?"default":"pointer"}),gap:12}}>
                   <div style={{width:38,height:38,borderRadius:10,background:`${CC[r.cat]||"#636366"}22`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    {(()=>{const tr=tracking.find(t=>r.itvId!=null?t.id===r.itvId:t.name===r.service);const c=tr?sc(tr.st):CC[r.cat]||"#636366";const sz=tr&&tr.st==="overdue"?14:tr&&tr.st==="soon"?11:9;return<div style={{width:sz,height:sz,borderRadius:"50%",background:c,transition:"all .3s",boxShadow:`0 0 ${tr?.st==="overdue"?6:3}px ${c}88`}}/>;})()}
+                    {(()=>{const tr=tracking.find(t=>t.id===r.itvId);const c=tr?sc(tr.st):CC[r.cat]||"#636366";const sz=tr&&tr.st==="overdue"?14:tr&&tr.st==="soon"?11:9;return<div style={{width:sz,height:sz,borderRadius:"50%",background:c,transition:"all .3s",boxShadow:`0 0 ${tr?.st==="overdue"?6:3}px ${c}88`}}/>;})()}
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:500,fontSize:15,color:T.tx,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.service}</div>
@@ -744,11 +747,11 @@ function App(){
                       <span style={{fontSize:12,color:T.tx3}}>{(r.km||0).toLocaleString()} km</span>
                       <span style={{fontSize:12,color:T.tx3}}>{r.by}</span>
                     </div>
-                    {r.itvId==null&&!demo&&(
+                    {suelto(r)&&!demo&&(
                       <div style={{display:"flex",alignItems:"center",gap:10,marginTop:10,padding:"9px 11px",background:`${T.or}14`,border:`0.5px solid ${T.or}44`,borderRadius:10,flexWrap:"wrap"}}>
                         <div style={{flex:1,minWidth:130}}>
                           <div style={{fontSize:12,fontWeight:600,color:T.or}}>Sin seguimiento</div>
-                          <div style={{fontSize:11,color:T.tx3,marginTop:1,lineHeight:1.35}}>No cuenta para ningún intervalo.</div>
+                          <div style={{fontSize:11,color:T.tx3,marginTop:1,lineHeight:1.35}}>{r.itvId==null?"No cuenta para ningún intervalo.":"El intervalo al que apuntaba ya no existe."}</div>
                         </div>
                         <select value="" onChange={e=>{if(e.target.value)linkRec(r.id,e.target.value);}} style={{...inp({padding:"6px 8px",fontSize:12,width:"auto"}),maxWidth:180,flexShrink:0}}>
                           <option value="">Vincular a…</option>
