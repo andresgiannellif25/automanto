@@ -20,7 +20,9 @@
  * cache-first sin revalidar.
  */
 
-const CACHE = "automanto-v1";
+/* v2: cambió el juego de iconos. Subir el número es lo que hace que activate
+   borre la caché vieja y con ella el icon.png de 1,5 MB que ya no se usa. */
+const CACHE = "automanto-v2";
 
 /* Marca de "hay versión nueva en caché". Existe además del postMessage porque
    la revalidación ocurre durante la navegación, casi siempre antes de que la
@@ -34,7 +36,12 @@ const CDN = [
   "https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js",
 ];
 
-const LOCAL = ["./", "./index.html", "./icon.png", "./manifest.webmanifest"];
+/* icon-512 queda fuera del precache a propósito: sólo lo usan la pantalla de
+   instalación y el splash, así que no merece 190 KB en la primera carga de
+   todo el mundo. Si hace falta, el manejador de recursos propios lo cachea
+   la primera vez que se pide. */
+const LOCAL = ["./", "./index.html", "./icon-192.png", "./icon-maskable.png",
+               "./icon-apple.png", "./manifest.webmanifest"];
 
 /* Clave canónica del documento: todas las navegaciones dentro del scope
    comparten una sola entrada, sin importar la query string. */

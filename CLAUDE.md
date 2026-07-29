@@ -45,7 +45,13 @@ automanto/
 ├── index.html             ← toda la app (~810 líneas)
 ├── sw.js                  ← service worker
 ├── manifest.webmanifest   ← manifest PWA
-├── icon.png               ← ícono 1254×1254, usado como any y maskable
+├── icon-192.png           ← icono "any" y favicon
+├── icon-512.png           ← icono "any" grande (instalación, splash)
+├── icon-maskable.png      ← 512, opaco y a sangre, arte al 80%
+├── icon-apple.png         ← 180, opaco, para apple-touch-icon
+├── icon-src.png           ← arte original 1254×1254; no se sirve, sólo se versiona
+├── tools/
+│   └── generar-iconos.py  ← regenera los cuatro desde icon-src.png
 ├── .gitignore             ← ignora .claude/ (config local de Claude Code)
 ├── README.md
 └── CLAUDE.md              ← este archivo
@@ -137,9 +143,15 @@ Ids: los 24 predefinidos usan slugs (`oil-engine`…), mapeados desde el id num�
 
 ## 7. La capa PWA
 
-**Manifest** — `standalone`, `start_url` y `scope` relativos (`./`, necesario porque Pages sirve bajo `/automanto/`), tema negro, `icon.png` declarado con su tamaño real como `any` y como `maskable`.
+**Manifest** — `standalone`, `start_url` y `scope` relativos (`./`, necesario porque Pages sirve bajo `/automanto/`), tema negro, e iconos declarados con su tamaño real: 192 y 512 como `any`, y `icon-maskable.png` como `maskable`.
 
-**Service worker** — precachea en `install`: el documento, `index.html`, `icon.png`, el manifest y los tres scripts de cdnjs. Los recursos se piden uno a uno para que un fallo puntual del CDN no aborte la instalación entera.
+**Iconos** — se generan con `tools/generar-iconos.py` desde `icon-src.png`. Tres reglas que no conviene romper al tocarlos:
+
+- El **maskable** debe ser opaco y a sangre, con el arte al 80% del lienzo. Android recorta un círculo del 80%: un icono con margen transparente sale con las esquinas vacías y la ilustración cortada. El fondo continúa el degradado del propio squircle para que el borde no se note.
+- El **apple-touch-icon** debe ser opaco y sin esquinas redondeadas propias. iOS compone la transparencia sobre negro y luego aplica su redondeo; un PNG con esquinas transparentes sale con marco negro.
+- Los iconos **`any` van en color real**. Cuantizarlos deja bandas visibles en el degradado, y con alfa Pillow sólo admite FASTOCTREE, que es la peor. El maskable sí se cuantiza (MEDIANCUT, sin alfa) porque ahí es indistinguible y ahorra la mitad.
+
+**Service worker** — precachea en `install`: el documento, `index.html`, el manifest y los iconos pequeños, más los tres scripts de cdnjs. `icon-512.png` queda fuera a propósito: sólo lo usan la instalación y el splash, y no merece 190 KB en la primera carga de todo el mundo. Los recursos se piden uno a uno para que un fallo puntual del CDN no aborte la instalación entera.
 
 **Estrategia de caché, y por qué:**
 
@@ -185,7 +197,7 @@ Auditado contra el código el 2026-07-28.
 5. **Sin notificaciones push**
 6. **Babel en el navegador** — compila en cada carga; ahora sale de caché, así que penaliza el arranque pero no la red
 7. **Sin tests automatizados**. La validación al importar es mínima: se comprueba que el JSON parsee y que tenga forma de backup, pero no se valida el contenido campo a campo
-8. **`icon.png` pesa 1,5 MB** y se precachea entero; convendría una versión reducida
+8. ~~**`icon.png` pesa 1,5 MB**~~ — **saldado**. El juego de iconos suma 309 KB y sólo 118 KB entran al precache
 
 ---
 
