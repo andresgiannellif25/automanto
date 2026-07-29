@@ -405,8 +405,8 @@ function App(){
      ya no existe — por ejemplo uno personalizado que se borró. El segundo caso
      no se veía: el id no era null, así que no salía el aviso, y no casaba con
      ningún intervalo, así que tampoco contaba en ninguna parte. */
-  const itvIds=useMemo(()=>new Set(itvs.map(x=>x.id)),[itvs]);
-  const suelto=r=>r.itvId==null||!itvIds.has(r.itvId);
+  const itvById=useMemo(()=>new Map(itvs.map(x=>[x.id,x])),[itvs]);
+  const suelto=r=>r.itvId==null||!itvById.has(r.itvId);
 
   const tracking=useMemo(()=>itvs.map(iv=>{
     const ms=dispR.filter(r=>r.itvId===iv.id).sort((a,b)=>new Date(b.date)-new Date(a.date)||b.km-a.km);
@@ -735,8 +735,15 @@ function App(){
                 <div key={r.id} style={{...card(),opacity:demo?0.65:1}}>
                   <div style={{padding:"12px 14px"}}>
                     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:4}}>
-                      <div style={{flex:1}}>
+                      <div style={{flex:1,minWidth:0}}>
                         <div style={{fontWeight:600,fontSize:15,color:T.tx}}>{r.service}</div>
+                        {/* El nombre del intervalo sólo cuando difiere del texto
+                            del registro: si coinciden, repetirlo es ruido. Al
+                            renombrar un intervalo el registro conserva su texto
+                            original, y esta línea es la que cierra el vínculo. */}
+                        {(()=>{const iv=itvById.get(r.itvId);return iv&&iv.name!==r.service
+                          ?<div style={{fontSize:11,color:T.tx4,marginTop:2}}>Intervalo: <span style={{color:T.tx3,fontWeight:500}}>{iv.name}</span></div>
+                          :null;})()}
                         {r.desc&&<div style={{fontSize:13,color:T.tx3,marginTop:1}}>{r.desc}</div>}
                       </div>
                       <div style={{fontWeight:700,fontSize:16,marginLeft:12,color:T.tx}}>${(r.amount||0).toFixed(2)}</div>

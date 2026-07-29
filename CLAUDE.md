@@ -110,6 +110,8 @@ Es el corazón de la app. Para cada intervalo:
 
 Consecuencia buscada: renombrar un intervalo **no toca los registros**. El vínculo sobrevive porque es el id, así que ya no existe la cascada que reescribía `service`. En Seguimiento se ve el nombre actual del intervalo; en Registros, el texto original de cada servicio. Que difieran es correcto, no un fallo.
 
+Para que el vínculo no quede invisible cuando difieren, la tarjeta de Registros muestra una línea `Intervalo: <nombre actual>` **sólo si el nombre del intervalo no coincide con el `service` del registro**. Si coinciden —el caso normal— no se muestra nada: repetir el mismo texto sería ruido.
+
 **Registros sueltos** (`suelto()`): un registro está suelto si `itvId` es null —"Otro", elegido a propósito— o si apunta a un intervalo que ya no existe, típicamente uno personalizado que se borró. El segundo caso era invisible: el id no era null, así que no saltaba ningún aviso, y no casaba con nada, así que tampoco contaba en ninguna parte. Los dos casos muestran ahora el aviso "Sin seguimiento" con la acción "Vincular a…" en la pestaña Registros.
 
 **Migración** — `migrate()` se aplica en los tres puntos de entrada: `storageLoad()`, `importData()` (antes del `confirm`, para poder contar los huérfanos reales) y los datos semilla, que ya nacen en v2.
