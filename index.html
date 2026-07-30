@@ -153,6 +153,7 @@ const CC={Motor:"#FF6B35",Transmisión:"#FF453A",Frenos:"#FF453A",Suspensión:"#
 
 /* ── PWA ── */
 const DK="automanto_pwa_dismiss";
+const EK="automanto_last_export";   // fecha del último export, por dispositivo
 const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 
@@ -283,7 +284,14 @@ function App(){
   const pRef=useRef(null);                  // evento beforeinstallprompt diferido
 
   const vRef=useRef(vehicle),rRef=useRef(records),iRef=useRef(itvs);
-  const uRef=useRef(null); // updatedAt del último guardado conocido
+  /* updatedAt pasa de ref a estado: ahora el aviso de respaldo lo compara
+     contra la fecha del último export, así que tiene que provocar re-render. */
+  const [updAt,setUpdAt]=useState(null);
+  /* Fecha del último export. Clave propia, fuera de `automanto_v3`: es un dato
+     de ESTE dispositivo, no del documento. Si viajara dentro del backup, un
+     teléfono nuevo heredaría el contador del viejo al importar y creería estar
+     respaldado sin estarlo. */
+  const [lastExp,setLastExp]=useState(()=>{try{const v=localStorage.getItem(EK);return v?Number(v):null;}catch(_){return null;}});
   useEffect(()=>{vRef.current=vehicle;},[vehicle]);
   useEffect(()=>{rRef.current=records;},[records]);
   useEffect(()=>{iRef.current=itvs;},[itvs]);
@@ -302,7 +310,7 @@ function App(){
         if(d.vehicle){setVehicle(d.vehicle);setVDraft(d.vehicle);}
         if(d.records)setRecords(d.records);
         if(d.itvs)setItvs(d.itvs);
-        uRef.current=d.updatedAt||null;
+        setUpdAt(d.updatedAt||null);
         setSeeded(true); // existe documento guardado ⇒ datos propios, nunca ejemplos
         setSyncMsg("Guardado ✓");
       }else{setSyncMsg("Listo");}
@@ -370,7 +378,7 @@ function App(){
   const save=(v,r,i)=>{
     setSeeded(true);
     setSyncMsg("Guardando…");
-    storageSave({vehicle:v??vRef.current,records:r??rRef.current,itvs:i??iRef.current}).then(u=>{uRef.current=u;setSyncMsg("Guardado ✓");});
+    storageSave({vehicle:v??vRef.current,records:r??rRef.current,itvs:i??iRef.current}).then(u=>{setUpdAt(u);setSyncMsg("Guardado ✓");});
   };
 
   const D={
@@ -481,16 +489,43 @@ function App(){
 
   const commitVehicle=field=>{const next={...vehicle,[field]:vDraft[field]};setVehicle(next);save(next,null,null);};
 
+  /* Estado del respaldo. Lo que importa no es cuándo exportaste, sino si lo
+     que tenés ahora está en alguna copia: por eso se compara updatedAt contra
+     la fecha del export en vez de mirar sólo el tiempo transcurrido. Alguien
+     que exportó y no volvió a tocar la app no tiene nada en riesgo, por muchos
+     meses que pasen. */
+  const haceCuanto=d=>d<=0?"hoy":d===1?"ayer":d<30?`hace ${d} días`:d<60?"hace un mes":d<365?`hace ${Math.floor(d/30)} meses`:"hace más de un año";
+  const respaldo=(()=>{
+    if(demo)return null;                       // no hay datos propios que perder
+    if(!lastExp)return{c:T.or,t:"Nunca hiciste un respaldo",d:"Si perdés o reinicias el teléfono, estos datos no están en ningún otro sitio."};
+    const dias=Math.floor((Date.now()-lastExp)/864e5);
+    const cambio=updAt?new Date(updAt).getTime():null;
+    if(!(cambio!=null&&cambio>lastExp))
+      return{c:T.gr,t:"Respaldo al día",d:`No hubo cambios desde el último respaldo, ${haceCuanto(dias)}.`};
+    return{
+      c:dias>90?T.rd:dias>30?T.or:T.tx4,
+      t:dias>30?"Tenés cambios sin respaldar":"Cambios sin respaldar",
+      d:`Último respaldo ${haceCuanto(dias)}. Desde entonces editaste datos que no están en ninguna copia.`,
+    };
+  })();
+
   const exportData=()=>{
     // En modo ejemplo no hay nada guardado: descargar un backup vacío que
     // luego se pueda reimportar borraría la vista previa sin explicar nada.
     if(demo){alert("Todavía no hay nada que respaldar.\n\nLos registros que ves son ejemplos y no están guardados. Crea tu primer registro o completa los datos del vehículo, y vuelve a exportar.");return;}
-    const data={vehicle,records,itvs,schemaVersion:SCHEMA,updatedAt:uRef.current,exportedAt:new Date().toISOString(),version:"1"};
+    const data={vehicle,records,itvs,schemaVersion:SCHEMA,updatedAt:updAt,exportedAt:new Date().toISOString(),version:"1"};
     const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");
     a.href=url;a.download=`automanto_backup_${new Date().toISOString().slice(0,10)}.json`;
     a.click();URL.revokeObjectURL(url);
+    /* Se anota la descarga, no que el usuario haya conservado el archivo: el
+       navegador no expone eso. Nótese que importar NO toca esta fecha, y es a
+       propósito: un backup importado puede traer datos viejos, y haberlo
+       importado no dice nada sobre si lo que edites después está a salvo. */
+    const t=Date.now();
+    try{localStorage.setItem(EK,String(t));}catch(_){}
+    setLastExp(t);
   };
 
   const importData=e=>{
@@ -811,13 +846,22 @@ function App(){
                 </div>
                 <button onClick={exportData} style={{background:T.ac,color:"#fff",border:"none",borderRadius:20,padding:"7px 16px",fontSize:14,fontWeight:600,cursor:"pointer"}}>📤 Exportar</button>
               </div>
-              <div style={{...rrow({borderBottom:"none"}),justifyContent:"space-between"}}>
+              <div style={{...rrow({borderBottom:respaldo?`0.5px solid ${T.sp}`:"none"}),justifyContent:"space-between"}}>
                 <div>
                   <div style={{fontWeight:500,fontSize:15,color:T.tx}}>Importar datos</div>
                   <div style={{fontSize:12,color:T.tx3,marginTop:1}}>Carga un backup .json previo</div>
                 </div>
                 <button onClick={()=>importRef.current.click()} style={{background:T.gr,color:"#fff",border:"none",borderRadius:20,padding:"7px 16px",fontSize:14,fontWeight:600,cursor:"pointer"}}>📥 Importar</button>
               </div>
+              {respaldo&&(
+                <div style={{...rrow({borderBottom:"none"}),gap:11,alignItems:"flex-start"}}>
+                  <div style={{width:9,height:9,borderRadius:"50%",background:respaldo.c,flexShrink:0,marginTop:5}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:500,fontSize:14,color:T.tx}}>{respaldo.t}</div>
+                    <div style={{fontSize:11,color:T.tx3,marginTop:2,lineHeight:1.45}}>{respaldo.d}</div>
+                  </div>
+                </div>
+              )}
               <input ref={importRef} type="file" accept=".json" onChange={importData} style={{display:"none"}}/>
             </div>
 

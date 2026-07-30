@@ -190,7 +190,25 @@ Auditado contra el código el 2026-07-28.
 
    Requiere además Safari 17 / iOS 17: antes, `navigator.storage` puede no existir. La llamada está guardada.
 
-   **Riesgo residual:** un usuario que abra la app en una pestaña y nunca la instale sigue expuesto exactamente igual que antes. La única mitigación para él sigue siendo exportar a mano.
+   **Tercera capa: aviso de respaldo.** Red de seguridad para lo que las dos anteriores no cubren — pérdida o reseteo del dispositivo, o cualquier fallo imprevisto. En Config, dentro del bloque de respaldo, se muestra el estado del último export.
+
+   La métrica no es el tiempo desde el export sino **si lo que hay ahora está en alguna copia**: se compara `updatedAt` contra la fecha guardada del último export. Alguien que exportó y no volvió a tocar la app no tiene nada en riesgo por muchos meses que pasen, y avisarle sería ruido que enseña a ignorar el aviso.
+
+   | Estado | Color |
+   |---|---|
+   | Sin datos propios (modo ejemplo) | no se muestra nada |
+   | Nunca exportó, con datos | naranja |
+   | Exportó y no hubo cambios desde entonces | verde |
+   | Cambios sin respaldar, < 30 días | neutro |
+   | Cambios sin respaldar, 30–90 días | naranja |
+   | Cambios sin respaldar, > 90 días | rojo |
+
+   Dos decisiones deliberadas, ambas por el mismo motivo — el contador describe **este dispositivo**, no el dato:
+
+   - La fecha vive en `automanto_last_export`, **fuera** de `automanto_v3`, y no se incluye en el JSON exportado. Si viajara dentro del backup, un teléfono nuevo heredaría el contador del viejo al importar y se creería respaldado sin estarlo.
+   - **Importar no actualiza la fecha.** Un documento importado puede traer datos viejos, y haberlo importado no dice nada sobre si lo que se edite después está a salvo.
+
+   **Riesgo residual:** un usuario que abra la app en una pestaña, nunca la instale y nunca exporte sigue expuesto. El aviso se lo dice, pero no puede exportar por él.
 2. **Un solo vehículo** por instalación → el modelo de datos no contempla flota
 3. **Sin sincronización** — datos locales por dispositivo
 4. ~~**Vínculo por string**~~ — **saldado**. El vínculo es `itvId` desde C1–C4; no queda ninguna comparación por nombre en el código
