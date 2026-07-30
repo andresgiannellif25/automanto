@@ -154,6 +154,7 @@ const CC={Motor:"#FF6B35",Transmisión:"#FF453A",Frenos:"#FF453A",Suspensión:"#
 /* ── PWA ── */
 const DK="automanto_pwa_dismiss";
 const EK="automanto_last_export";   // fecha del último export, por dispositivo
+const IK="automanto_from_import";   // los datos de este dispositivo llegaron importados
 const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 
@@ -292,6 +293,13 @@ function App(){
      teléfono nuevo heredaría el contador del viejo al importar y creería estar
      respaldado sin estarlo. */
   const [lastExp,setLastExp]=useState(()=>{try{const v=localStorage.getItem(EK);return v?Number(v):null;}catch(_){return null;}});
+  /* Si los datos de este dispositivo llegaron por importación, el aviso de
+     "nunca exportaste" tiene que decir otra cosa: existe un archivo de origen,
+     aunque no cubra lo editado después. Persiste en localStorage porque si no,
+     recargar cambiaría el texto con los mismos datos. Tampoco viaja en el
+     export: al importarlo, el dispositivo nuevo heredaría el `false` del
+     dispositivo donde los datos se crearon a mano, que es justo lo contrario. */
+  const [fromImp,setFromImp]=useState(()=>{try{return localStorage.getItem(IK)==="1";}catch(_){return false;}});
   useEffect(()=>{vRef.current=vehicle;},[vehicle]);
   useEffect(()=>{rRef.current=records;},[records]);
   useEffect(()=>{iRef.current=itvs;},[itvs]);
@@ -497,7 +505,11 @@ function App(){
   const haceCuanto=d=>d<=0?"hoy":d===1?"ayer":d<30?`hace ${d} días`:d<60?"hace un mes":d<365?`hace ${Math.floor(d/30)} meses`:"hace más de un año";
   const respaldo=(()=>{
     if(demo)return null;                       // no hay datos propios que perder
-    if(!lastExp)return{c:T.or,t:"Nunca hiciste un respaldo",d:"Si perdés o reinicias el teléfono, estos datos no están en ningún otro sitio."};
+    // Mismo aviso y mismo color; sólo cambia la redacción cuando los datos
+    // llegaron importados, porque ahí sí existe un archivo de origen.
+    if(!lastExp)return fromImp
+      ?{c:T.or,t:"No exportaste un respaldo desde este dispositivo",d:"Los datos llegaron por importación. Ese archivo respalda lo importado, pero no lo que edites desde acá."}
+      :{c:T.or,t:"Nunca hiciste un respaldo",d:"Si perdés o reinicias el teléfono, estos datos no están en ningún otro sitio."};
     const dias=Math.floor((Date.now()-lastExp)/864e5);
     const cambio=updAt?new Date(updAt).getTime():null;
     if(!(cambio!=null&&cambio>lastExp))
@@ -544,6 +556,8 @@ function App(){
         if(d.records)setRecords(d.records);
         if(d.itvs)setItvs(d.itvs);
         save(d.vehicle??vehicle,d.records??records,d.itvs??itvs);
+        try{localStorage.setItem(IK,"1");}catch(_){}
+        setFromImp(true);
         alert("✅ Datos importados correctamente");
       }
     };

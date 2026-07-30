@@ -198,6 +198,7 @@ Auditado contra el código el 2026-07-28.
    |---|---|
    | Sin datos propios (modo ejemplo) | no se muestra nada |
    | Nunca exportó, con datos | naranja |
+   | ídem, pero los datos llegaron importados | naranja, otra redacción |
    | Exportó y no hubo cambios desde entonces | verde |
    | Cambios sin respaldar, < 30 días | neutro |
    | Cambios sin respaldar, 30–90 días | naranja |
@@ -207,6 +208,7 @@ Auditado contra el código el 2026-07-28.
 
    - La fecha vive en `automanto_last_export`, **fuera** de `automanto_v3`, y no se incluye en el JSON exportado. Si viajara dentro del backup, un teléfono nuevo heredaría el contador del viejo al importar y se creería respaldado sin estarlo.
    - **Importar no actualiza la fecha.** Un documento importado puede traer datos viejos, y haberlo importado no dice nada sobre si lo que se edite después está a salvo.
+   - `automanto_from_import` marca que los datos de este dispositivo llegaron importados, y sólo cambia la **redacción** del aviso de "nunca exportaste": ahí sí existe un archivo de origen, aunque no cubra lo editado después. Persiste en localStorage porque si no, recargar cambiaría el texto con los mismos datos. Tampoco viaja en el export, por la razón inversa a las anteriores: el dispositivo que importa heredaría el `false` del dispositivo donde los datos se crearon a mano.
 
    **Riesgo residual:** un usuario que abra la app en una pestaña, nunca la instale y nunca exporte sigue expuesto. El aviso se lo dice, pero no puede exportar por él.
 2. **Un solo vehículo** por instalación → el modelo de datos no contempla flota
