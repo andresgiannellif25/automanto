@@ -167,7 +167,13 @@ El despliegue de este proyecto es "editar `index.html` y commitear". Ese flujo *
 
 Con stale-while-revalidate se sirve la copia cacheada al instante (rápido y offline) y en paralelo se pide la de red y se guarda. El despliegue nuevo entra en caché **en la misma visita** y se aplica en la siguiente carga. Cuando la copia de red difiere de la cacheada, el SW deja una marca y avisa a la página, que ofrece recargar: así el usuario puede tener la versión nueva ya en la primera visita. **Nadie tiene que acordarse de subir un número de versión.**
 
-`CACHE = "automanto-v1"` sólo hay que tocarlo si cambia la *forma* de lo cacheado; `activate` borra cualquier caché con otro nombre.
+**Punto ciego conocido del banner** (esperado, no es un fallo): el aviso compara únicamente el documento. Si un despliegue modifica también `sw.js`, el worker nuevo se instala y su `install` precachea el `index.html` nuevo directamente, así que **la actualización se aplica en silencio, sin banner** — no queda nada que anunciar. El banner sólo aparece cuando cambia el documento y `sw.js` no.
+
+No requiere arreglo: tocar `sw.js` es infrecuente por diseño, y en ese caso el usuario recibe la versión nueva igual, sólo que sin aviso. Verificado con el panel de diagnóstico de Config: tras un despliegue que sólo cambió `index.html`, el banner aparece y luego caché y servidor coinciden.
+
+`CACHE = "automanto-v2"` sólo hay que tocarlo si cambia la *forma* de lo cacheado; `activate` borra cualquier caché con otro nombre. Se subió a v2 al reemplazar el juego de iconos, para que las cachés viejas soltaran el `icon.png` de 1,5 MB.
+
+**La página no debe conocer el nombre de la caché.** Cuando lo conocía, subir el worker a v2 dejó el lector de la marca apuntando a `automanto-v1` y el banner se rompió en silencio. Ahora la marca se busca con `caches.match()`, que recorre todas.
 
 **Dos trampas que costaron depurar** (no reintroducirlas):
 
@@ -225,7 +231,9 @@ Auditado contra el código el 2026-07-28.
 
 ## 9. Convenciones a respetar
 
-- Todo el texto de UI en **español**
+- **Idioma: español latinoamericano neutro, siempre.** Con "tú", nunca voseo ("tienes", no "tenés"; "puedes", no "podés"; "dime", no "decime"). Sin modismos de ningún país en particular.
+
+  Aplica a **todo**: el texto de la interfaz, los comentarios del código, los mensajes de commit y —sobre todo— **las explicaciones dirigidas a Andrés**: informes, razonamientos, respuestas en la conversación. No es sólo una convención de producto, es cómo se le habla.
 - Nombres de variables cortos ya establecidos (`T` = tema, `CC` = colores de categoría, `fT`/`fR` = listas filtradas, `dispR` = registros mostrados). Mantener consistencia.
 - Tema claro/oscuro vía `D.dark` / `D.light`, seleccionado con `prefers-color-scheme` y toggle manual
 - Respetar `env(safe-area-inset-*)` en header y tab bar (ya corregido para iPhone con notch)
