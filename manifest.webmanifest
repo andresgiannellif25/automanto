@@ -1,6 +1,6 @@
 {
-  "name": "AutoManto",
-  "short_name": "AutoManto",
+  "name": "Highway",
+  "short_name": "Highway",
   "description": "Control de mantenimiento vehicular: registra servicios y calcula qué está vencido, próximo a vencer o al día.",
   "lang": "es",
   "dir": "ltr",

@@ -1,4 +1,4 @@
-/* AutoManto — service worker
+/* Highway — service worker
  *
  * Estrategia, y por qué:
  *
@@ -124,7 +124,7 @@ async function staleWhileRevalidate(event, isDoc) {
   if (cached) return cached;
   const res = await netP;
   return res || new Response(
-    "AutoManto no está disponible sin conexión todavía. Abre la app una vez con red para guardarla.",
+    "Highway no está disponible sin conexión todavía. Abre la app una vez con red para guardarla.",
     { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } }
   );
 }

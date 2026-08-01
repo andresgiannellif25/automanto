@@ -1,4 +1,4 @@
-# AutoManto — Contexto de proyecto para Claude Code
+# Highway — Contexto de proyecto para Claude Code
 
 > Este archivo se carga automáticamente en cada sesión de Claude Code abierta en el repo.
 > Describe **lo que el código hace hoy**. Si algo aquí no coincide con `index.html`, el error está en este documento y hay que corregirlo.
@@ -7,11 +7,13 @@
 
 ## 1. Qué es
 
-**AutoManto** es una PWA de control de mantenimiento vehicular. Registra servicios realizados (aceite, frenos, filtros…), los compara contra intervalos configurables en km y días, y calcula qué está vencido, próximo a vencer o al día.
+**Highway** es una PWA de control de mantenimiento vehicular. Registra servicios realizados (aceite, frenos, filtros…), los compara contra intervalos configurables en km y días, y calcula qué está vencido, próximo a vencer o al día.
 
 - **En producción:** https://andresgiannellif25.github.io/automanto
-- **Repo:** `andresgiannellif25/automanto`
+- **Repo:** `andresgiannellif25/automanto` — **el repo NO se renombra**, ni la URL
 - **Idioma de la UI:** español
+
+**El nombre visible es Highway; el identificador técnico sigue siendo `automanto`.** La separación es deliberada: renombrar el repo cambiaría la URL de Pages y rompería la instalación existente en el iPhone. Por el mismo motivo tampoco cambia ninguna clave de almacenamiento (`automanto_v3`, `automanto_db`, `automanto_pwa_dismiss`, `automanto_last_export`, `automanto_from_import`), ni el nombre de la caché del service worker, ni el prefijo de los archivos de backup: renombrarlos dejaría huérfanos los datos y los respaldos que ya existen, sin ganar nada.
 - **Autor:** Andrés — estudiante de economía, no desarrollador de profesión. Explica el *porqué* de los cambios, no solo el *qué*.
 
 ---
@@ -235,13 +237,13 @@ Auditado contra el código el 2026-07-28.
 
 ## 10. Hacia dónde va
 
-Objetivo declarado: convertir AutoManto en un **producto/negocio**, no solo una app publicada.
+**Este repo queda dedicado en exclusiva a la versión personal**: uso propio y de gente cercana, simple y sin servidor. Ése es su alcance definitivo, no una etapa previa a otra cosa.
 
-Eso implica, en algún momento: cuentas de usuario, datos en la nube, sincronización entre dispositivos y cobros. Las decisiones de producto (nicho, modelo de negocio, validación de demanda) se están discutiendo **en paralelo en otro canal** — no las asumas resueltas.
+La versión comercial —concesionarios, cuentas de usuario, backend— **vivirá en un repo aparte, todavía no creado**. No es una rama de éste ni un fork técnico: son dos proyectos independientes desde el origen, con su propia clave de almacenamiento y su propio dominio antes de cargar ningún dato real.
 
-Hay decidido un cambio de nombre a **Highway**, pendiente a propósito. Todo sigue como AutoManto por ahora.
+Consecuencia práctica para cualquier sesión abierta aquí: **no introduzcas cuentas, backend ni multi-tenancy en este repo.** Si una petición parece llevar hacia ahí, es señal de que pertenece al otro proyecto y conviene decirlo antes de escribir código. Las decisiones de producto (nicho, modelo de negocio, validación de demanda) se discuten **en otro canal** — no las asumas resueltas.
 
-**Mientras tanto, el trabajo técnico útil es:**
-- Saldar la deuda técnica de §8, sobre todo el punto 1
-- Preparar el modelo de datos para multi-vehículo
-- Dejar la capa de almacenamiento lo bastante desacoplada como para poder cambiar `localStorage` por una API remota sin reescribir la app
+**El trabajo técnico útil aquí es:**
+- Saldar la deuda técnica de §8 — el punto 1 (vínculo por string) ya está saldado
+- Preparar el modelo de datos para multi-vehículo, que sigue siendo útil para uso personal (más de un coche en la familia)
+- Mantener la app simple y sin dependencias: es la característica que la hace mantenible por una sola persona

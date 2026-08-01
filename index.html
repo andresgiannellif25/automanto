@@ -6,9 +6,9 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="AutoManto"/>
+<meta name="apple-mobile-web-app-title" content="Highway"/>
 <meta name="theme-color" content="#000000"/>
-<title>AutoManto</title>
+<title>Highway</title>
 <link rel="manifest" href="manifest.webmanifest"/>
 <link rel="icon" type="image/png" href="icon-192.png"/>
 <link rel="apple-touch-icon" href="icon-apple.png"/>
@@ -137,7 +137,7 @@ function migrate(doc){
    para que la decisión se tome viendo el coste, no a ciegas. */
 const orphanCount=d=>(Array.isArray(d&&d.records)?d.records:[]).filter(r=>r.itvId==null).length;
 
-/* Un JSON válido no es un backup de AutoManto. Sin esto, cualquier .json
+/* Un JSON válido no es un backup de Highway. Sin esto, cualquier .json
    suelto reemplazaría los datos del usuario en cuanto confirmara el diálogo. */
 const looksLikeBackup=d=>!!d&&typeof d==="object"&&!Array.isArray(d)&&(d.vehicle!==undefined||Array.isArray(d.records)||Array.isArray(d.itvs));
 
@@ -187,24 +187,24 @@ async function checkPersistencia(){
   const info={estado:"na",instalada:isStandalone(),usage:null,quota:null};
   try{
     if(!navigator.storage||!navigator.storage.persist){
-      console.info("[AutoManto] Storage API no disponible (Safari <17 o file://): no se puede pedir persistencia.");
+      console.info("[Highway] Storage API no disponible (Safari <17 o file://): no se puede pedir persistencia.");
       return info;
     }
     let ok=await navigator.storage.persisted();
     const yaEstaba=ok;
     if(!ok)ok=await navigator.storage.persist();
     info.estado=ok?"ok":"no";
-    console.info(`[AutoManto] Almacenamiento persistente: ${ok?"CONCEDIDO":"DENEGADO"}`
+    console.info(`[Highway] Almacenamiento persistente: ${ok?"CONCEDIDO":"DENEGADO"}`
       +` · app ${info.instalada?"instalada":"en pestaña del navegador"}`
       +(yaEstaba?" · ya lo estaba":"")
       +(ok?"":" · instalar en pantalla de inicio es lo que más ayuda a que se conceda"));
     if(navigator.storage.estimate){
       const e=await navigator.storage.estimate();
       info.usage=e.usage??null;info.quota=e.quota??null;
-      console.info(`[AutoManto] Uso: ${Math.round((e.usage||0)/1024)} KB de ${Math.round((e.quota||0)/1048576)} MB`);
+      console.info(`[Highway] Uso: ${Math.round((e.usage||0)/1024)} KB de ${Math.round((e.quota||0)/1048576)} MB`);
     }
   }catch(err){
-    console.warn("[AutoManto] No se pudo consultar la persistencia:",err&&err.message);
+    console.warn("[Highway] No se pudo consultar la persistencia:",err&&err.message);
     info.estado="error";
   }
   return info;
@@ -550,7 +550,7 @@ function App(){
     reader.onload=ev=>{
       const raw=pJSON(ev.target.result);
       if(!raw){alert("Archivo inválido: no es un JSON legible.");return;}
-      if(!looksLikeBackup(raw)){alert("Ese archivo no parece un backup de AutoManto.\n\nNo se ha modificado nada.");return;}
+      if(!looksLikeBackup(raw)){alert("Ese archivo no parece un backup de Highway.\n\nNo se ha modificado nada.");return;}
       // Punto de entrada 2 de 3: se migra antes de preguntar, para que el
       // diálogo pueda contar los huérfanos reales y no una estimación.
       const d=migrate(raw);
@@ -589,7 +589,7 @@ function App(){
   if(!loaded)return(
     <div style={{background:T.bg,height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,fontFamily:ff}}>
       <div style={{fontSize:52}}>🚗</div>
-      <div style={{fontSize:20,fontWeight:700,color:T.tx}}>AutoManto</div>
+      <div style={{fontSize:20,fontWeight:700,color:T.tx}}>Highway</div>
       <div style={{fontSize:14,color:T.tx3,marginTop:-8}}>Cargando datos...</div>
       <div style={{width:28,height:28,border:`3px solid ${T.bg3}`,borderTop:`3px solid ${T.ac}`,borderRadius:"50%",animation:"spin 0.8s linear infinite",marginTop:8}}/>
     </div>
@@ -628,7 +628,7 @@ function App(){
         <div style={{background:T.bg2,flexShrink:0,borderBottom:`0.5px solid ${T.br}`,padding:"10px 16px",display:"flex",alignItems:"center",gap:10}}>
           <div style={{fontSize:20,flexShrink:0}}>📲</div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:13,fontWeight:600,color:T.tx}}>Instalar AutoManto</div>
+            <div style={{fontSize:13,fontWeight:600,color:T.tx}}>Instalar Highway</div>
             <div style={{fontSize:11,color:T.tx3,marginTop:1}}>{canInst?"Acceso directo y uso sin conexión.":"Pulsa Compartir y luego «Añadir a pantalla de inicio»."}</div>
           </div>
           {canInst&&<button onClick={doInstall} style={{background:T.ac,color:"#fff",border:"none",borderRadius:16,padding:"6px 14px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Instalar</button>}
