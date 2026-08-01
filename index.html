@@ -359,18 +359,22 @@ function App(){
      - postMessage, si la página ya estaba abierta y escuchando.
      - la marca en caché, que el SW deja durante la navegación (normalmente
        antes de que este efecto corra, así que el mensaje se perdería).
-       Se consume al leerla para que avise una sola vez. */
+       Se consume al leerla para que avise una sola vez.
+
+     La marca se busca con caches.match(), que mira TODAS las cachés, en vez de
+     abrir una por nombre. Antes se abría "automanto-v1" a mano y al subir el
+     SW a v2 la marca dejó de encontrarse en silencio: la página no tiene por
+     qué conocer el nombre de la caché del worker. */
   useEffect(()=>{
     if(!("serviceWorker" in navigator))return;
     const h=e=>{if(e.data&&e.data.type==="AUTOMANTO_UPDATE_READY")setSwUpd(true);};
     navigator.serviceWorker.addEventListener("message",h);
     (async()=>{
       try{
-        const c=await caches.open("automanto-v1");
-        if(await c.match("https://automanto.local/update-pending")){
-          await c.delete("https://automanto.local/update-pending");
-          setSwUpd(true);
-        }
+        const MARCA="https://automanto.local/update-pending";
+        if(!(await caches.match(MARCA)))return;
+        for(const k of await caches.keys()){const c=await caches.open(k);await c.delete(MARCA);}
+        setSwUpd(true);
       }catch(_){}
     })();
     return()=>navigator.serviceWorker.removeEventListener("message",h);
