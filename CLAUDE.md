@@ -227,6 +227,29 @@ Auditado contra el código el 2026-07-28.
 7. **Sin tests automatizados**. La validación al importar es mínima: se comprueba que el JSON parsee y que tenga forma de backup, pero no se valida el contenido campo a campo
 8. ~~**`icon.png` pesa 1,5 MB**~~ — **saldado**. El juego de iconos suma 309 KB y sólo 118 KB entran al precache
 
+### Bug conocido: zona de contenido en negro (cosmético, intermitente)
+
+**No investigar más por ahora**, salvo que se vuelva reproducible o más frecuente. Se anota para no volver a diagnosticarlo desde cero.
+
+**Síntoma.** Cambiando rápido entre Inicio y Registros, la zona de contenido queda en negro. El header y la barra de pestañas se siguen viendo bien. Ocasional, no reproducible a voluntad.
+
+**Condiciones observadas:** sólo con la app **instalada** —no ocurre en Safari normal con la misma prueba—, sólo en **modo oscuro**, y entre Inicio ↔ Registros. Ya ocurría **antes de cualquier importación de respaldo**, así que esa acción queda descartada.
+
+**Por qué se ve así, y por qué sólo en oscuro.** El contenedor de scroll (`flex:1, overflowY:auto`) **no tiene fondo propio**: es transparente y deja ver el del elemento raíz. En oscuro ese fondo es `#000000` puro; en claro es `#F2F2F7`, casi idéntico al fondo normal de la app entre tarjetas. Lo más probable es que el fallo no sea exclusivo del modo oscuro: es que **sólo se nota** ahí.
+
+**Hipótesis descartadas, con evidencia:**
+
+- **`-webkit-overflow-scrolling: touch`** — descartada. Apple removió la implementación en iOS 13; la propiedad todavía parsea pero no tiene efecto. En un iPhone actual es código muerto y no puede ser la causa. (Quitarla de los tres sitios donde aparece sigue siendo limpieza válida, pero **no es un arreglo de este bug** y no debe presentarse como tal.)
+- **Overlay o spinner residual sin desmontar** — descartada. 100 cambios de pestaña, incluidos 60 sin pausa alguna: cero elementos `position:fixed` residuales.
+- **Orden de pintado entre cambio de tema y de pestaña** — descartada. 40 iteraciones entrelazando ambos: sin anomalías.
+- **Árbol de React que se vacía** — descartada. El contenedor nunca quedó sin hijos ni con altura anómala, y no hubo errores de JavaScript.
+
+**Sospecha sin confirmar:** fallo de repintado o composición de WebKit en esa capa. Encaja con que el DOM esté intacto mientras la pantalla no lo está, y con que sólo aparezca en modo instalado.
+
+**Por qué no se pudo reproducir:** un fallo de composición es invisible desde JavaScript —el DOM y los estilos están correctos mientras la pantalla no lo está— y este entorno de desarrollo no permite inspeccionar píxeles. Además Chromium no es WebKit: `CSS.supports('-webkit-overflow-scrolling','touch')` devuelve `false`, así que la ruta sospechosa ni siquiera existe ahí.
+
+**El dato que haría avanzar el diagnóstico:** cuando ocurra, ¿se recupera haciendo scroll sobre la zona negra, sin cambiar de pestaña? Si sí, es repintado y el contenido estaba ahí. Si no, hay que buscar en el layout.
+
 ---
 
 ## 9. Convenciones a respetar
