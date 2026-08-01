@@ -183,6 +183,38 @@ const comoInstalar=()=>isIOS()?"Pulsá Compartir y luego «Añadir a pantalla de
    concedida sería el mismo error que nos trajo hasta aquí.
    Ojo: esto NO es la defensa contra el borrado a los 7 días de ITP. Esa
    exención la da estar instalada en pantalla de inicio, no esta llamada. */
+/* Diagnóstico del service worker.
+   Sin un Mac no se puede inspeccionar el worker de un iPhone, así que el
+   estado tiene que verse desde la propia app.
+
+   Ojo con lo que NO se puede mostrar: no existe API que exponga cuándo
+   comprobó el navegador por última vez si `sw.js` cambió. Esa comprobación
+   la hace él solo, en cada navegación y como mucho cada 24 h, y no la
+   publica. Lo único medible es cuándo la pedimos nosotros con update(), que
+   es lo que hace el botón "Buscar ahora". */
+const hashCorto=s=>{let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return (h>>>0).toString(16).padStart(8,"0");};
+
+async function leerSW(){
+  const d={soportado:"serviceWorker" in navigator,controlada:null,installing:null,waiting:null,active:null,
+           caches:[],marca:false,doc:null,error:null};
+  try{
+    if(!d.soportado)return d;
+    d.controlada=navigator.serviceWorker.controller?navigator.serviceWorker.controller.scriptURL.split("/").pop():null;
+    const reg=await navigator.serviceWorker.getRegistration();
+    if(reg){
+      const url=w=>w?w.scriptURL.split("/").pop()+" · "+w.state:null;
+      d.installing=url(reg.installing);d.waiting=url(reg.waiting);d.active=url(reg.active);
+      d.scope=reg.scope;
+    }
+    d.caches=await caches.keys();
+    d.marca=!!(await caches.match("https://automanto.local/update-pending"));
+    // Huella del documento que la app está sirviendo desde caché
+    const c=await caches.match(new Request(location.href.split("?")[0]),{ignoreSearch:true});
+    if(c){const t=await c.text();d.doc={bytes:t.length,huella:hashCorto(t)};}
+  }catch(e){d.error=e&&e.message?e.message:String(e);}
+  return d;
+}
+
 async function checkPersistencia(){
   const info={estado:"na",instalada:isStandalone(),usage:null,quota:null};
   try{
@@ -282,6 +314,8 @@ function App(){
   const [iosTip,setIosTip]=useState(false); // iOS no emite beforeinstallprompt
   const [puedeInst,setPuedeInst]=useState(false); // hay prompt disponible, aunque el banner esté descartado
   const [stg,setStg]=useState(null);        // diagnóstico de almacenamiento; null = comprobando
+  const [sw,setSw]=useState(null);          // diagnóstico del service worker
+  const [swBusca,setSwBusca]=useState(null); // resultado de "Buscar actualización ahora"
   const pRef=useRef(null);                  // evento beforeinstallprompt diferido
 
   const vRef=useRef(vehicle),rRef=useRef(records),iRef=useRef(itvs);
@@ -336,6 +370,36 @@ function App(){
     Promise.race([checkPersistencia(),limite]).then(i=>{if(vivo)setStg(i);}).catch(()=>{if(vivo)setStg(neutro);});
     return()=>{vivo=false;};
   },[]);
+
+  useEffect(()=>{let vivo=true;leerSW().then(d=>{if(vivo)setSw(d);});return()=>{vivo=false;};},[]);
+
+  /* Pide al navegador que compruebe si sw.js cambió, y además compara el
+     documento cacheado con el de red. Eso responde la pregunta que importa
+     —¿hay versión nueva, y la app la está viendo?— sin depender de que el
+     worker haya llegado a correr su revalidación. */
+  const buscarActualizacion=async()=>{
+    setSwBusca({estado:"buscando"});
+    const r={estado:"listo",update:null,cache:null,red:null,iguales:null,error:null};
+    try{
+      const reg=await navigator.serviceWorker.getRegistration();
+      if(!reg){r.error="No hay service worker registrado.";setSwBusca(r);return;}
+      await reg.update();
+      r.update=reg.installing?"instalando uno nuevo":reg.waiting?"hay uno esperando":"sin worker nuevo";
+      const url=location.href.split("?")[0].split("#")[0];
+      const c=await caches.match(new Request(url),{ignoreSearch:true});
+      if(c){const t=await c.text();r.cache=hashCorto(t)+" · "+t.length+" B";}
+      /* El parámetro único es imprescindible: sin él, esta petición la
+         atiende el propio worker desde su caché y compararíamos la caché
+         consigo misma. Con query distinta no casa con ninguna entrada y sale
+         a la red de verdad. */
+      const res=await fetch(new Request(url+"?diag="+Date.now(),{cache:"no-store",mode:"same-origin",credentials:"same-origin"}));
+      const tr=await res.text();
+      r.red=hashCorto(tr)+" · "+tr.length+" B";
+      r.iguales=r.cache!==null&&r.cache===r.red;
+    }catch(e){r.error=e&&e.message?e.message:String(e);}
+    setSwBusca(r);
+    setSw(await leerSW());
+  };
 
   /* Instalación: Chrome/Android emiten beforeinstallprompt y podemos ofrecer
      el diálogo nativo. iOS no lo emite nunca, así que ahí sólo cabe explicar
@@ -928,6 +992,49 @@ function App(){
                         <span style={{fontSize:13,color:T.tx2,fontWeight:500}}>{fmtBytes(stg.usage)}{stg.quota!=null?` de ${fmtBytes(stg.quota)}`:""}</span>
                       </div>
                     )}
+                  </div>
+                </>
+              );
+            })()}
+
+            {/* ── Diagnóstico del service worker ── */}
+            {(()=>{
+              const fila=(k,v,col)=>(
+                <div key={k} style={{...rrow({borderBottom:`0.5px solid ${T.sp}`,padding:"9px 16px"}),gap:10,alignItems:"flex-start"}}>
+                  <div style={{fontSize:12,color:T.tx3,width:132,flexShrink:0}}>{k}</div>
+                  <div style={{fontSize:12,color:col||T.tx2,flex:1,minWidth:0,wordBreak:"break-word",fontWeight:col?600:400}}>{v}</div>
+                </div>
+              );
+              const b=swBusca;
+              return(
+                <>
+                  <div style={sh}>Service worker</div>
+                  <div style={{...card(),marginBottom:20}}>
+                    {!sw?fila("Estado","Leyendo…"):!sw.soportado?fila("Estado","No soportado en este navegador",T.rd):[
+                      fila("Controlando",sw.controlada||"NO — la página no está bajo el worker",sw.controlada?null:T.rd),
+                      fila("Activo",sw.active||"ninguno",sw.active?null:T.rd),
+                      fila("Esperando",sw.waiting||"ninguno",sw.waiting?T.or:null),
+                      fila("Instalando",sw.installing||"ninguno",sw.installing?T.or:null),
+                      fila("Cachés",sw.caches.length?sw.caches.join(", "):"ninguna",sw.caches.length?null:T.rd),
+                      fila("Marca pendiente",sw.marca?"sí — hay versión nueva sin avisar":"no",sw.marca?T.or:null),
+                      fila("Documento en caché",sw.doc?`${sw.doc.huella} · ${sw.doc.bytes} B`:"no está cacheado",sw.doc?null:T.rd),
+                      sw.error?fila("Error",sw.error,T.rd):null,
+                    ].filter(Boolean)}
+
+                    {b&&b.estado==="listo"&&[
+                      fila("Última búsqueda",b.error?b.error:b.update,b.error?T.rd:null),
+                      b.red?fila("En el servidor",b.red):null,
+                      b.iguales!==null?fila("¿Coinciden?",b.iguales?"sí — ya tenés la última":"NO — el servidor tiene otra versión",b.iguales?T.gr:T.or):null,
+                    ].filter(Boolean)}
+
+                    <div style={{...rrow({borderBottom:"none"}),justifyContent:"space-between",gap:10}}>
+                      <div style={{fontSize:11,color:T.tx4,flex:1,minWidth:0,lineHeight:1.4}}>
+                        El navegador no expone cuándo comprobó por su cuenta si hay versión nueva. Esto lo pregunta ahora.
+                      </div>
+                      <button onClick={buscarActualizacion} disabled={b&&b.estado==="buscando"} style={{background:b&&b.estado==="buscando"?T.bg4:T.ac,color:b&&b.estado==="buscando"?T.tx3:"#fff",border:"none",borderRadius:16,padding:"6px 14px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>
+                        {b&&b.estado==="buscando"?"Buscando…":"Buscar ahora"}
+                      </button>
+                    </div>
                   </div>
                 </>
               );
