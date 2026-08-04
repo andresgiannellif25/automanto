@@ -74,10 +74,13 @@ Clave: `automanto_v3`.
 
 **b) Constantes**
 - `DEFAULT_INT` — 24 intervalos predefinidos `{id, cat, name, km, days, note, custom}`
-- `SAMPLE_R` — 3 registros de ejemplo, **sólo vista previa** (ver §6)
+- `LEGACY_ID` — mapa id numérico v1 → slug v2, usado sólo por `toV2()` (§5)
+- `SAMPLE_R` — 3 registros de ejemplo, ya con `itvId`, **sólo vista previa** (ver §6)
 - `CATS` — 12 categorías
 - `CC` — color hex por categoría
-- `DK`, `isIOS()`, `isStandalone()` — detección para el banner de instalación
+- `DK` — descarte del banner de instalación; `EK`, `IK` — claves de `automanto_last_export` y `automanto_from_import` (§8, punto 1), todas de `localStorage`, ninguna del documento
+- `isIOS()`, `isSafari()`, `isStandalone()`, `aplicaPurga7d()`, `comoInstalar()` — detección de navegador para el banner de instalación y el aviso de los 7 días de ITP (§8, punto 1). `isSafari()` excluye Chromium a mano: casi todo UA lleva `Safari/537.36`, incluido Chrome
+- `checkPersistencia()`, `leerSW()`, `hashCorto()` — diagnóstico de persistencia y del service worker que alimenta el panel de Config (§7)
 
 **c) `IRow`**
 Fila de intervalo en Config. Usa inputs **no controlados** (`defaultValue` + `ref`, commit en `onBlur`) a propósito: los controlados perdían el cursor en cada tecla dentro de iframes. **No convertir a controlados.**
@@ -91,9 +94,16 @@ records   → historial de servicios realizados (sólo datos propios)
 itvs      → intervalos de mantenimiento
 seeded    → si el usuario ya tiene datos propios
 vDraft    → buffer de edición del vehículo (commit en blur)
+updAt     → updatedAt del último guardado, para que el export lleve la fecha
+            real de modificación del dato y no la de exportación
+lastExp   → fecha del último export en este dispositivo (§8, punto 1)
+fromImp   → si los datos de este dispositivo llegaron por importación (§8, punto 1)
+stg       → diagnóstico de almacenamiento (persist/persisted), para el panel de Config
+sw, swBusca → diagnóstico del service worker y resultado de "Buscar ahora" (§7)
+swUpd, canInst, iosTip, puedeInst → banners de actualización e instalación (§7)
 ```
 
-Refs espejo (`vRef`, `rRef`, `iRef`) para que `save()` lea el estado más reciente sin depender del closure. `uRef` guarda el `updatedAt` del último guardado conocido, para que el export lleve la fecha real de modificación del dato y no la de exportación.
+Refs espejo (`vRef`, `rRef`, `iRef`) para que `save()` lea el estado más reciente sin depender del closure. `updAt` es **estado, no ref**: el aviso de respaldo lo compara contra la fecha del export y necesita provocar re-render cuando cambia.
 
 **e) Registro del service worker**
 Script plano al final del `<body>`, guardado por esquema para no romper `file://`.
@@ -104,7 +114,7 @@ Script plano al final del `<body>`, guardado por esquema para no romper `file://
 
 Es el corazón de la app. Para cada intervalo:
 
-1. Filtra los registros visibles donde `record.service === itv.name`
+1. Filtra los registros visibles donde `record.itvId === itv.id`
 2. Ordena **por fecha descendente**, con km como desempate, y toma el primero → `lKm`, `lDt`
 3. `nKm = lKm + itv.km`, `nDt = lDt + itv.days`
 4. Holguras: `kmL = nKm - kmActuales`, `dL = díasHasta(nDt)`
@@ -180,7 +190,11 @@ No requiere arreglo: tocar `sw.js` es infrecuente por diseño, y en ese caso el 
 1. `fetch(peticiónDeNavegación, init)` lanza `TypeError`: el constructor de `Request` rechaza un init no vacío si el origen está en modo `navigate`. La petición de revalidación se construye limpia desde la URL.
 2. El `Response` cacheado se devuelve al navegador **y** se compara con el de red. Hay que clonarlo *antes* de devolverlo: en cuanto el navegador empieza a leerlo, su cuerpo queda consumido y `clone()` falla, abortando la revalidación en silencio.
 
-**Instalación** — `beforeinstallprompt` en Chrome/Android ofrece el diálogo nativo. iOS no emite ese evento nunca, así que ahí se muestran las instrucciones del gesto manual. Si ya está instalada (`display-mode: standalone` o `navigator.standalone`) no se muestra nada. El descarte se recuerda en `localStorage`.
+**Instalación** — `beforeinstallprompt` en Chrome/Android ofrece el diálogo nativo. iOS no emite ese evento nunca, así que ahí se muestran las instrucciones del gesto manual (`comoInstalar()`, distinta para iOS, Safari de escritorio y el resto). Si ya está instalada (`display-mode: standalone` o `navigator.standalone`) no se muestra nada. El descarte se recuerda en `localStorage`, pero el evento `beforeinstallprompt` se captura igual aunque el banner esté descartado: si no, el bloque de Config no tendría cómo ofrecer la instalación.
+
+**Panel de diagnóstico del service worker** (Config) — sin un Mac no se puede inspeccionar el worker de un iPhone, así que el estado se expone en la propia app. `leerSW()` muestra si la página está controlada y por qué script, los tres estados del registro (`active`/`waiting`/`installing`), las cachés presentes, si hay una marca de actualización pendiente sin consumir, y la huella (`hashCorto`) del documento servido desde caché.
+
+El botón **"Buscar ahora"** llama a `registration.update()` y además compara la huella de la caché contra la del servidor — la pregunta que de verdad importa: ¿hay versión nueva, y la app la está viendo? La petición de comparación lleva un parámetro de caché-bust único (`?diag=...`); sin él, el propio worker la serviría desde su caché y el panel compararía la caché consigo misma, mintiendo siempre que ya está actualizada.
 
 ---
 
@@ -194,7 +208,9 @@ Auditado contra el código el 2026-07-28.
 
    **Lo que sí protege:** estar **instalada en pantalla de inicio**. Las apps instaladas no forman parte de Safari y llevan su propio contador de días de uso, que se reinicia al usarlas. Ésa es la exención documentada para este caso concreto, y es la razón de peso para que el banner de instalación del §7 exista.
 
-   **Lo que NO protege:** `navigator.storage.persist()`, pese a lo que parece. Se pide al arrancar y se registra el resultado en consola (`checkPersistencia`), pero WebKit concede ese permiso *por heurísticas, sobre todo si ya estás instalado en pantalla de inicio*. En una pestaña normal de Safari lo habitual es que lo deniegue — justo el escenario donde haría falta. Protege sobre todo del desalojo por presión de espacio. Verificado empíricamente: en Chromium sobre localhost devuelve `false`.
+   **Lo que NO protege:** `navigator.storage.persist()`, pese a lo que parece. Se pide al arrancar (`checkPersistencia`) y el resultado se registra en consola **y** se muestra en un bloque de Config con cinco estados posibles (protegido / protección parcial / sin proteger / no disponible / no se pudo comprobar), más el espacio usado. Pero WebKit concede ese permiso *por heurísticas, sobre todo si ya estás instalado en pantalla de inicio*. En una pestaña normal de Safari lo habitual es que lo deniegue — justo el escenario donde haría falta. Protege sobre todo del desalojo por presión de espacio. Verificado empíricamente: en Chromium sobre localhost devuelve `false`.
+
+   El texto de "sin proteger" distingue si aplica o no la purga de los 7 días (`aplicaPurga7d()`): en Chrome/Firefox de escritorio el riesgo real es otro (desalojo por espacio), y advertir de un plazo que no aplica ahí sería falso.
 
    Requiere además Safari 17 / iOS 17: antes, `navigator.storage` puede no existir. La llamada está guardada.
 
