@@ -94,9 +94,10 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 /* padding-top como forma LARGA a propósito: WebkitiOS descarta env()/max() dentro del shorthand `padding`, y con la declaracion caida el contenido queda a y=0, detras de la isla. La forma larga si la acepta (es lo que usa el header viejo). El shorthand deja el fallback de 16px si algo fallara. */
 .a-wrap{padding:16px 18px 22px;padding-top:max(16px,env(safe-area-inset-top))}
 .hw-greet{padding:2px 2px 12px}
-.hw-greet .hi{font-size:13px;font-weight:600;color:var(--neutral-500)}
+.hw-greet .hi{font-size:12.5px;font-weight:600;color:var(--neutral-500)}
 .hw-greet .hi b{color:var(--blue-900);font-weight:800}
-.hw-greet .veh{font-size:12px;color:var(--neutral-400);font-weight:600;margin-top:2px}
+.hw-greet .veh{font-size:21px;font-weight:800;letter-spacing:-.02em;color:var(--blue-900);margin-top:2px}
+.hw-greet .veh .yr{color:var(--neutral-400);font-weight:600}
 .a-hero{position:relative;border-radius:var(--radius-xl);background:var(--brand-gradient);color:#fff;padding:20px;overflow:hidden;box-shadow:var(--shadow-brand)}
 .a-hero.ok{background:linear-gradient(150deg,#2fb463,#0e6f32)}
 .a-hero .glow{position:absolute;right:-46px;top:-46px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(133,173,255,.45),transparent 68%)}
@@ -751,8 +752,11 @@ function App(){
   // Saludo: solo si hay nombre guardado; se usa el primer nombre del campo.
   const firstName=ownerName.trim().split(/\s+/)[0]||"";
   const saludo=firstName?`${saludoHora()}, ${firstName}`:"";
-  // Sin kilometraje: es redundante con el odómetro que ya muestra el hero.
-  const vehLine=vehicle.brand?`${vehicle.brand} ${vehicle.model} ${vehicle.year}`.trim():"";
+  // Nombre (marca + modelo) y año separados: el nombre lleva el tratamiento
+  // fuerte de .vname (21px/800/blue-900) y el año va discreto. Sin km, que ya
+  // lo muestra el hero.
+  const vehName=vehicle.brand?`${vehicle.brand} ${vehicle.model}`.trim():"";
+  const vehYear=vehName&&vehicle.year?String(vehicle.year):"";
 
   /* form.itvId tiene tres valores posibles y cada uno significa algo distinto:
        undefined → todavía no se eligió nada (formulario nuevo)
@@ -976,10 +980,10 @@ function App(){
           {tab==="home"&&<>
             {/* --- MÓVIL: Variante A --- */}
             <div className="hw-mob a-wrap">
-              {(saludo||vehLine)&&(
+              {(saludo||vehName)&&(
                 <div className="hw-greet">
                   {saludo&&<div className="hi">{saludoHora()}, <b>{firstName}</b></div>}
-                  {vehLine&&<div className="veh">{vehLine}</div>}
+                  {vehName&&<div className="veh">{vehName}{vehYear&&<span className="yr"> · {vehYear}</span>}</div>}
                 </div>
               )}
               {heroItem?(
