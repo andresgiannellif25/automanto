@@ -7,14 +7,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Highway"/>
-<meta name="theme-color" content="#000000"/>
+<meta name="theme-color" content="#f6f8fb"/>
 <title>Highway</title>
 <link rel="manifest" href="manifest.webmanifest"/>
 <link rel="icon" type="image/png" href="icon-192.png"/>
 <link rel="apple-touch-icon" href="icon-apple.png"/>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-html,body{height:100%;background:#000}
+html,body{height:100%;background:var(--surface-page)}
 input[type=number]{-moz-appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none}
 ::-webkit-scrollbar{width:0}
@@ -72,6 +72,115 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
   .hw-side{display:flex}
   .hw-tabbar{display:none}
 }
+/* ── Fase 2: Inicio (Variante A móvil + escritorio) ──
+   Datos reales; los estados usan las mismas clases ok/soon/overdue del cálculo
+   de tracking. Los bloques móvil/escritorio se alternan por el punto de quiebre. */
+.hw-mob{display:block}
+.hw-desk{display:none}
+@media(min-width:900px){.hw-mob{display:none}.hw-desk{display:block}}
+/* utilidades compartidas */
+.badge{display:inline-flex;align-items:center;gap:5px;height:23px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.badge .bd{width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.ok{background:var(--status-ok-bg);color:var(--status-ok)}
+.badge.soon{background:var(--status-due-bg);color:var(--status-due)}
+.badge.overdue{background:var(--status-overdue-bg);color:var(--status-overdue)}
+.prog{height:5px;border-radius:999px;background:var(--surface-sunken);overflow:hidden}
+.prog>i{display:block;height:100%;border-radius:999px}
+.prog>i.ok{background:var(--green-500)}.prog>i.soon{background:var(--amber-500)}.prog>i.overdue{background:var(--red-500)}
+.sec-h{display:flex;align-items:center;justify-content:space-between;padding:20px 2px 12px}
+.sec-h h3{font-size:15px;font-weight:800;letter-spacing:-.01em;color:var(--blue-900)}
+.sec-h .lnk{font-size:12.5px;font-weight:700;color:var(--blue-600);background:none;border:none;cursor:pointer;font-family:inherit}
+/* --- móvil: Variante A --- */
+.a-wrap{padding:14px 18px 22px}
+.hw-greet{padding:2px 2px 12px}
+.hw-greet .hi{font-size:13px;font-weight:600;color:var(--neutral-500)}
+.hw-greet .hi b{color:var(--blue-900);font-weight:800}
+.hw-greet .veh{font-size:12px;color:var(--neutral-400);font-weight:600;margin-top:2px}
+.a-hero{position:relative;border-radius:var(--radius-xl);background:var(--brand-gradient);color:#fff;padding:20px;overflow:hidden;box-shadow:var(--shadow-brand)}
+.a-hero.ok{background:linear-gradient(150deg,#2fb463,#0e6f32)}
+.a-hero .glow{position:absolute;right:-46px;top:-46px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(133,173,255,.45),transparent 68%)}
+.a-hero .wm{position:absolute;right:-14px;bottom:-24px;width:118px;height:118px;color:rgba(255,255,255,.10)}
+.a-hero .wm .ic{width:118px;height:118px;stroke-width:1}
+.a-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.16);padding:5px 10px;border-radius:999px}
+.a-eyebrow .ic{width:13px;height:13px;stroke-width:2.2}
+.a-hero h2{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-top:14px}
+.a-hero .sub{font-size:14px;font-weight:600;color:#dbe8ff;margin-top:3px}
+.a-hero.ok .sub{color:#cdefdb}
+.a-hero .meta{font-size:12px;color:#b8d0ff;margin-top:2px}
+.a-hero.ok .meta{color:#b6e3c6}
+.a-hero .row{display:flex;align-items:center;justify-content:space-between;margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.16)}
+.a-odo{font-size:12px;color:#b8d0ff}
+.a-hero.ok .a-odo{color:#b6e3c6}
+.a-odo b{display:block;font-size:19px;color:#fff;font-weight:700}
+.a-cta{height:40px;padding:0 16px;border-radius:12px;background:#fff;color:var(--blue-700);font-size:13.5px;font-weight:700;border:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-family:inherit}
+.a-hero.ok .a-cta{color:var(--green-700)}
+.a-cta .ic{width:16px;height:16px;stroke-width:2.2}
+.a-chips{display:flex;gap:8px;margin:14px 0 2px}
+.a-chip{flex:1;background:var(--surface-card);border:1px solid var(--border);border-radius:14px;padding:9px 10px;display:flex;flex-direction:column;gap:2px;box-shadow:var(--shadow-xs)}
+.a-chip .n{font-size:19px;font-weight:800;letter-spacing:-.02em}
+.a-chip .l{font-size:10.5px;font-weight:600;color:var(--neutral-500)}
+.a-chip.overdue .n{color:var(--status-overdue)}.a-chip.soon .n{color:var(--status-due)}.a-chip.ok .n{color:var(--status-ok)}
+.a-list{display:flex;flex-direction:column;gap:10px}
+.a-card{background:var(--surface-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;box-shadow:var(--shadow-card);display:flex;gap:13px;align-items:center;width:100%;text-align:left;cursor:pointer;font-family:inherit}
+.a-card .tile{width:44px;height:44px;flex:0 0 auto;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--brand-tint);color:var(--blue-600)}
+.a-card .tile.ok{background:var(--status-ok-bg);color:var(--status-ok)}.a-card .tile.soon{background:var(--status-due-bg);color:var(--status-due)}.a-card .tile.overdue{background:var(--status-overdue-bg);color:var(--status-overdue)}
+.a-card .tile .ic{width:23px;height:23px}
+.a-card .mid{flex:1;min-width:0}
+.a-card .mid .nm{font-size:14.5px;font-weight:700;color:var(--blue-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a-card .mid .mt{font-size:11.5px;color:var(--neutral-500);margin-top:2px}
+.a-card .mid .prog{margin-top:9px}
+.a-card .rt{text-align:right;flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.a-card .rt .rem{font-size:12px;font-weight:700}
+.a-card .rt .rem.ok{color:var(--status-ok)}.a-card .rt .rem.soon{color:var(--status-due)}.a-card .rt .rem.overdue{color:var(--status-overdue)}
+.hw-note{background:var(--surface-card);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);padding:24px 16px;text-align:center;color:var(--neutral-500);font-size:13.5px}
+/* --- escritorio: Inicio --- */
+.d-main2{padding:26px 32px}
+.d-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.d-topbar .tt .k{font-size:12.5px;font-weight:600;color:var(--neutral-500)}
+.d-topbar .tt .k b{color:var(--blue-900);font-weight:800}
+.d-topbar .tt h2{font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--blue-900);display:flex;align-items:center;gap:10px;margin-top:2px}
+.d-topbar .tt h2 .yr{color:var(--neutral-400);font-weight:600}
+.d-topbar .tt h2 .kmchip{font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--blue-700);background:var(--brand-tint);padding:4px 9px;border-radius:8px}
+.d-btn{height:44px;padding:0 18px;border-radius:13px;background:var(--brand-gradient);color:#fff;font-size:14px;font-weight:700;border:none;display:inline-flex;align-items:center;gap:8px;box-shadow:var(--shadow-brand);cursor:pointer;font-family:inherit}
+.d-btn .ic{width:19px;height:19px;stroke-width:2.3}
+.d-upper{display:grid;grid-template-columns:1.55fr 1fr;gap:18px;margin-bottom:20px}
+.d-hero{border-radius:var(--radius-xl);background:var(--brand-gradient);color:#fff;padding:26px 28px;position:relative;overflow:hidden;box-shadow:var(--shadow-brand);display:flex;flex-direction:column;min-height:220px}
+.d-hero.ok{background:linear-gradient(150deg,#2fb463,#0e6f32)}
+.d-hero .glow{position:absolute;right:-40px;top:-50px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(133,173,255,.4),transparent 68%)}
+.d-hero .wm{position:absolute;right:14px;bottom:-16px;width:130px;height:130px;color:rgba(255,255,255,.1)}
+.d-hero .wm .ic{width:130px;height:130px;stroke-width:1}
+.d-hero .a-eyebrow{align-self:flex-start}
+.d-hero h3{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:14px}
+.d-hero .sub{font-size:15px;font-weight:600;color:#dbe8ff;margin-top:4px}
+.d-hero.ok .sub{color:#cdefdb}
+.d-hero .meta{font-size:12.5px;color:#b8d0ff;margin-top:2px}
+.d-hero .foot{margin-top:auto;padding-top:20px;display:flex;align-items:center;justify-content:space-between}
+.d-hero .foot .odo b{display:block;font-size:20px;font-weight:700}
+.d-hero .foot .odo span{font-size:11.5px;color:#b8d0ff}
+.d-hero .foot button{height:40px;padding:0 18px;border-radius:12px;background:#fff;color:var(--blue-700);border:none;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.d-hero.ok .foot button{color:var(--green-700)}
+.d-side2{display:flex;flex-direction:column;gap:14px}
+.d-scard{background:var(--surface-card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:16px 18px;flex:1;display:flex;align-items:center;gap:14px}
+.d-scard .n{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1;width:44px}
+.d-scard.overdue .n{color:var(--status-overdue)}.d-scard.soon .n{color:var(--status-due)}.d-scard.ok .n{color:var(--status-ok)}
+.d-scard .tx b{font-size:14px;font-weight:700;color:var(--blue-900)}
+.d-scard .tx span{display:block;font-size:11.5px;color:var(--neutral-500);margin-top:1px}
+.d-scard .dchip{margin-left:auto;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.d-scard.overdue .dchip{background:var(--status-overdue-bg);color:var(--status-overdue)}.d-scard.soon .dchip{background:var(--status-due-bg);color:var(--status-due)}.d-scard.ok .dchip{background:var(--status-ok-bg);color:var(--status-ok)}
+.d-scard .dchip .ic{width:20px;height:20px}
+.d-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(min-width:900px) and (max-width:1200px){.d-grid{grid-template-columns:repeat(3,1fr)}}
+.d-card{background:var(--surface-card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:16px;width:100%;text-align:left;cursor:pointer;font-family:inherit}
+.d-card .ch{display:flex;align-items:center;justify-content:space-between}
+.d-card .tile{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--brand-tint);color:var(--blue-600)}
+.d-card .tile.ok{background:var(--status-ok-bg);color:var(--status-ok)}.d-card .tile.soon{background:var(--status-due-bg);color:var(--status-due)}.d-card .tile.overdue{background:var(--status-overdue-bg);color:var(--status-overdue)}
+.d-card .tile .ic{width:21px;height:21px}
+.d-card .nm{font-size:14px;font-weight:700;color:var(--blue-900);letter-spacing:-.01em;margin-top:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d-card .rem{font-size:12px;font-weight:600;margin-top:9px}
+.d-card .rem.ok{color:var(--status-ok)}.d-card .rem.soon{color:var(--status-due)}.d-card .rem.overdue{color:var(--status-overdue)}
+.d-card .prog{margin-top:8px}
+.d-card .mt{display:flex;justify-content:space-between;font-size:11px;color:var(--neutral-500);margin-top:11px;padding-top:11px;border-top:1px solid var(--neutral-100)}
+.d-card .mt b{color:var(--blue-900);font-weight:700}
 </style>
 </head>
 <body>
@@ -85,6 +194,20 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 <symbol id="i-list" viewBox="0 0 24 24"><path d="M8.5 6.5h11M8.5 12h11M8.5 17.5h11M4.4 6.5h.02M4.4 12h.02M4.4 17.5h.02"/></symbol>
 <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.1"/><path d="M12 2.4v2.6M12 19v2.6M4.4 4.4l1.9 1.9M17.7 17.7l1.9 1.9M2.4 12H5M19 12h2.6M4.4 19.6l1.9-1.9M17.7 6.3l1.9-1.9"/></symbol>
 <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-oil" viewBox="0 0 24 24"><path d="M12 3c3 4 5 6.6 5 9.5A5 5 0 0 1 7 12.5C7 9.6 9 7 12 3Z"/><path d="M9.6 12.6a2.6 2.6 0 0 0 2.4 2.4"/></symbol>
+<symbol id="i-brake" viewBox="0 0 24 24"><circle cx="10.5" cy="12" r="7.5"/><circle cx="10.5" cy="12" r="2.6"/><rect x="16" y="8.4" width="4" height="7.2" rx="1.6"/></symbol>
+<symbol id="i-tire" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.3"/><path d="M12 2.9v3.2M12 17.9v3.2M2.9 12h3.2M17.9 12h3.2M5.6 5.6l2.2 2.2M16.2 16.2l2.2 2.2M18.4 5.6l-2.2 2.2M7.8 16.2l-2.2 2.2"/></symbol>
+<symbol id="i-battery" viewBox="0 0 24 24"><rect x="2.5" y="7" width="16" height="10" rx="2.4"/><path d="M18.5 10.2h1.6a1 1 0 0 1 1 1v1.6a1 1 0 0 1-1 1h-1.6"/><path d="M6.4 12h3M7.9 10.5v3M13 12h2.6"/></symbol>
+<symbol id="i-air" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.4"/><path d="M8 5.4v13.2M12 5.4v13.2M16 5.4v13.2"/></symbol>
+<symbol id="i-coolant" viewBox="0 0 24 24"><path d="M10 13.2V5a2 2 0 0 1 4 0v8.2a3.6 3.6 0 1 1-4 0Z"/><path d="M12 8.5v5.2"/></symbol>
+<symbol id="i-align" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 14.5V21M9.7 11.1 4.2 8.3M14.3 11.1 19.8 8.3"/></symbol>
+<symbol id="i-inspect" viewBox="0 0 24 24"><rect x="5" y="4.2" width="14" height="16.6" rx="2.2"/><path d="M9 4.2V3.1h6v1.1"/><path d="M8.6 12.6l2.3 2.3 4.4-4.4"/></symbol>
+<symbol id="i-wash" viewBox="0 0 24 24"><path d="M7 12.5V7a2 2 0 0 1 2-2h1.5l1-1.5H14"/><path d="M6 12.5h12v6.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19z"/><path d="M9.5 15.5v2M12 15.5v2M14.5 15.5v2"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 21 19H3L12 3.5Z"/><path d="M12 9.5v4M12 16.4v.1"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9.2a6 6 0 0 1 12 0c0 4.8 2 6 2 6H4s2-1.2 2-6Z"/><path d="M10 19a2 2 0 0 0 4 0"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-car" viewBox="0 0 24 24"><path d="M3 13.2l1.8-4.4A2.2 2.2 0 0 1 6.9 7.4h10.2a2.2 2.2 0 0 1 2.1 1.4L21 13.2"/><path d="M2.8 13.2h18.4v4.2a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1v-1H6.4v1a1 1 0 0 1-1 1H3.8a1 1 0 0 1-1-1v-4.2Z"/><path d="M6.7 15.6h1.4M15.9 15.6h1.4"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6"/></symbol>
 </svg>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -218,6 +341,16 @@ const CC={Motor:"#FF6B35",Transmisión:"#FF453A",Frenos:"#FF453A",Suspensión:"#
 const DK="automanto_pwa_dismiss";
 const EK="automanto_last_export";   // fecha del último export, por dispositivo
 const IK="automanto_from_import";   // los datos de este dispositivo llegaron importados
+const OWNK="highway_owner";         // nombre del propietario: dato local del dispositivo, FUERA del esquema versionado (como EK/IK). El campo para editarlo llega en la Fase 4.
+
+/* Ícono del sistema de diseño por categoría. Sirve para las tarjetas de Inicio
+   y Seguimiento; si falta una categoría cae en el engranaje genérico. */
+const ICON={Motor:"i-oil","Transmisión":"i-settings",Frenos:"i-brake","Suspensión":"i-align","Eléctrico":"i-battery","Neumáticos":"i-tire",Filtros:"i-air",Fluidos:"i-coolant","Carrocería":"i-wash","Aire Acondicionado":"i-air","Inspección":"i-inspect",Otros:"i-settings"};
+const icoFor=cat=>ICON[cat]||"i-settings";
+
+/* Saludo según la hora local. Cortes confirmados con Andrés:
+   05:00–11:59 días · 12:00–18:59 tardes · 19:00–04:59 noches. */
+const saludoHora=()=>{const h=new Date().getHours();return h>=5&&h<12?"Buenos días":h>=12&&h<19?"Buenas tardes":"Buenas noches";};
 const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 
@@ -354,7 +487,7 @@ function IRow({iv,T,onCommit,onEdit,onDelete}){
 }
 
 function App(){
-  const [dark,setDark]=useState(true);
+  const [dark,setDark]=useState(false); // claro por defecto durante el rediseño (Fase 2); el modo oscuro real se reconstruye en su sesión aparte
   const [tab,setTab]=useState("home");
   const [loaded,setLoaded]=useState(false);
   const [syncMsg,setSyncMsg]=useState("Cargando…");
@@ -397,6 +530,9 @@ function App(){
      export: al importarlo, el dispositivo nuevo heredaría el `false` del
      dispositivo donde los datos se crearon a mano, que es justo lo contrario. */
   const [fromImp,setFromImp]=useState(()=>{try{return localStorage.getItem(IK)==="1";}catch(_){return false;}});
+  // Nombre del propietario para el saludo. Local del dispositivo, no versionado.
+  const [ownerName,setOwnerName]=useState(()=>{try{return localStorage.getItem(OWNK)||"";}catch(_){return"";}});
+  const saveOwner=v=>{setOwnerName(v);try{localStorage.setItem(OWNK,v);}catch(_){}};
   useEffect(()=>{vRef.current=vehicle;},[vehicle]);
   useEffect(()=>{rRef.current=records;},[records]);
   useEffect(()=>{iRef.current=itvs;},[itvs]);
@@ -576,6 +712,44 @@ function App(){
   const sc=s=>s==="overdue"?T.rd:s==="soon"?T.or:s==="ok"?T.gr:T.tx4;
   const sl=s=>s==="overdue"?"Vencido":s==="soon"?"Próximo":s==="ok"?"Al día":"Sin datos";
 
+  /* ── Datos derivados para Inicio (Fase 2) ──
+     Reusa `tracking`/`ov`/`so`/`ok` sin inventar umbrales. La lista de Inicio
+     solo muestra intervalos con historial (los "pending" viven en Seguimiento),
+     ordenados por urgencia: vencidos, luego próximos, luego al día; dentro de
+     cada grupo, primero los de menor holgura. */
+  const num=(v,f)=>v==null?f:v;
+  const stPr=s=>s==="overdue"?0:s==="soon"?1:s==="ok"?2:3;
+  const byUrg=(a,b)=>stPr(a.st)-stPr(b.st)||num(a.dL,Infinity)-num(b.dL,Infinity)||num(a.kmL,Infinity)-num(b.kmL,Infinity);
+  const homeList=useMemo(()=>tracking.filter(t=>t.st!=="pending").sort(byUrg),[tracking]);
+  const heroItem=homeList.find(t=>t.st==="overdue"||t.st==="soon")||null;
+  // Texto de holgura corto para tarjetas y hero.
+  const remOf=t=>t.kmL!=null?(t.kmL<=0?`+${Math.abs(t.kmL).toLocaleString()} km`:`${t.kmL.toLocaleString()} km`)
+                :t.dL!=null?(t.dL<=0?`${Math.abs(t.dL)} d venc.`:`${t.dL} días`):"—";
+  // Frase del hero (estado urgente): días si el intervalo es por tiempo, si no km.
+  const heroSub=t=>{
+    if(!t)return"";
+    if(t.st==="overdue"){
+      if(t.dL!=null&&t.dL<=0)return`Vencido hace ${Math.abs(t.dL)} días`;
+      if(t.kmL!=null&&t.kmL<=0)return`Vencido por ${Math.abs(t.kmL).toLocaleString()} km`;
+      return"Vencido";
+    }
+    if(t.dL!=null)return`Faltan ${t.dL} días`;
+    if(t.kmL!=null)return`Faltan ${t.kmL.toLocaleString()} km`;
+    return"Próximo";
+  };
+  // Progreso 0–100 del intervalo (consumo del ciclo). Presentación, no criterio de estado.
+  const progOf=t=>{
+    if(t.st==="overdue")return 100;
+    let p=null;
+    if(t.km>0&&t.lKm>0&&km0>0)p=(km0-t.lKm)/t.km*100;
+    else if(t.days>0&&t.dL!=null)p=(1-t.dL/t.days)*100;
+    return p==null?0:Math.max(4,Math.min(100,Math.round(p)));
+  };
+  // Saludo: solo si hay nombre guardado; se usa el primer nombre del campo.
+  const firstName=ownerName.trim().split(/\s+/)[0]||"";
+  const saludo=firstName?`${saludoHora()}, ${firstName}`:"";
+  const vehLine=vehicle.brand?`${vehicle.brand} ${vehicle.model} ${vehicle.year}`.trim()+(km0>0?` · ${km0.toLocaleString()} km`:""):"";
+
   /* form.itvId tiene tres valores posibles y cada uno significa algo distinto:
        undefined → todavía no se eligió nada (formulario nuevo)
        null      → "Otro", deliberadamente sin seguimiento
@@ -740,8 +914,8 @@ function App(){
 
       <div className="hw-main">
 
-      {/* HEADER */}
-      <div style={{background:T.nb,flexShrink:0,padding:"0 16px 10px",paddingTop:"max(16px, env(safe-area-inset-top))",borderBottom:`0.5px solid ${T.br}`,zIndex:50}}>
+      {/* HEADER — oculto en Inicio: esa pantalla trae su propio encabezado con saludo (Fase 2). Se redisena por pantalla en fases 3-4. */}
+      {tab!=="home"&&<div style={{background:T.nb,flexShrink:0,padding:"0 16px 10px",paddingTop:"max(16px, env(safe-area-inset-top))",borderBottom:`0.5px solid ${T.br}`,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{fontSize:22,fontWeight:700}}>{tab==="home"?"🚗 Panel":tab==="track"?"⏱ Seguimiento":tab==="records"?"📋 Registros":"⚙️ Config"}</div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -755,7 +929,7 @@ function App(){
           <div style={{width:7,height:7,borderRadius:"50%",background:syncMsg.includes("…")?T.or:T.gr,flexShrink:0}}/>
           <div style={{fontSize:11,color:T.tx4}}>{syncMsg}</div>
         </div>
-      </div>
+      </div>}
 
       {/* AVISO: NUEVA VERSIÓN */}
       {swUpd&&(
@@ -780,66 +954,138 @@ function App(){
 
       {/* SCROLL BODY */}
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
-        <div style={{padding:"16px",paddingBottom:24}}>
+        <div style={{padding:tab==="home"?0:"16px",paddingBottom:tab==="home"?0:24}}>
 
-          {/* ── HOME ── */}
+          {/* ── INICIO (Fase 2: móvil Variante A + escritorio, datos reales) ── */}
           {tab==="home"&&<>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-              <div style={{...card(),padding:"14px 16px",borderTop:`3px solid ${T.ac}`}}>
-                <div style={{fontSize:11,color:T.tx3,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Km actuales</div>
-                <div style={{fontSize:24,fontWeight:700,color:T.tx}}>{km0>0?km0.toLocaleString():"—"}</div>
-                <div style={{fontSize:11,color:T.tx4,marginTop:2}}>odómetro</div>
-              </div>
-              <div style={{...card(),padding:"14px 16px",borderTop:`3px solid ${T.pu}`}}>
-                <div style={{fontSize:11,color:T.tx3,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Total gastado</div>
-                <div style={{fontSize:22,fontWeight:700,color:T.tx}}>${ts.toLocaleString("es",{minimumFractionDigits:2})}</div>
-                <div style={{fontSize:11,color:T.tx4,marginTop:2}}>{dispR.length} servicios</div>
-              </div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
-              {[{l:"Vencidos",v:ov,c:T.rd},{l:"Próximos",v:so,c:T.or},{l:"Al día",v:ok,c:T.gr}].map((s,i)=>(
-                <div key={i} style={{background:T.cd,borderRadius:12,padding:"12px",textAlign:"center",border:`1.5px solid ${s.c}44`}}>
-                  <div style={{fontSize:28,fontWeight:700,color:s.c}}>{s.v}</div>
-                  <div style={{fontSize:12,color:s.c,fontWeight:500,marginTop:2}}>{s.l}</div>
+            {/* --- MÓVIL: Variante A --- */}
+            <div className="hw-mob a-wrap">
+              {(saludo||vehLine)&&(
+                <div className="hw-greet">
+                  {saludo&&<div className="hi">{saludoHora()}, <b>{firstName}</b></div>}
+                  {vehLine&&<div className="veh">{vehLine}</div>}
                 </div>
-              ))}
-            </div>
-            {(ov>0||so>0)&&<>
-              <div style={sh}>Atención requerida</div>
-              <div style={{...card(),marginBottom:16}}>
-                {tracking.filter(t=>t.st==="overdue"||t.st==="soon").slice(0,6).map((t,i,a)=>(
-                  <div key={t.id} style={{...rrow({borderBottom:i<a.length-1?`0.5px solid ${T.sp}`:"none"}),gap:12}}>
-                    <div style={{width:10,height:10,borderRadius:"50%",background:sc(t.st),flexShrink:0}}/>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:500,fontSize:15,color:T.tx,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</div>
-                      <div style={{fontSize:12,color:T.tx3}}>{t.cat}</div>
-                    </div>
-                    <div style={{textAlign:"right",flexShrink:0}}>
-                      {t.kmL!==null&&<div style={{fontSize:13,fontWeight:600,color:sc(t.st)}}>{t.kmL<=0?`+${Math.abs(t.kmL).toLocaleString()}km`:`${t.kmL.toLocaleString()}km`}</div>}
-                      {t.dL!==null&&<div style={{fontSize:11,color:sc(t.st)}}>{t.dL<=0?`${Math.abs(t.dL)}d venc.`:`${t.dL}d`}</div>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>}
-            <div style={sh}>Últimos servicios</div>
-            <div style={card()}>
-              {dispR.length===0&&<div style={{padding:"24px 16px",color:T.tx3,textAlign:"center",fontSize:15}}>Sin registros aún</div>}
-              {[...dispR].sort((a,b)=>new Date(b.date)-new Date(a.date)||b.km-a.km).slice(0,5).map((r,i,a)=>(
-                <div key={r.id} onClick={()=>{if(!demo)openEdit(r);}} style={{...rrow({borderBottom:i<a.length-1?`0.5px solid ${T.sp}`:"none",cursor:demo?"default":"pointer"}),gap:12}}>
-                  <div style={{width:38,height:38,borderRadius:10,background:`${CC[r.cat]||"#636366"}22`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    {(()=>{const tr=tracking.find(t=>t.id===r.itvId);const c=tr?sc(tr.st):CC[r.cat]||"#636366";const sz=tr&&tr.st==="overdue"?14:tr&&tr.st==="soon"?11:9;return<div style={{width:sz,height:sz,borderRadius:"50%",background:c,transition:"all .3s",boxShadow:`0 0 ${tr?.st==="overdue"?6:3}px ${c}88`}}/>;})()}
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:500,fontSize:15,color:T.tx,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.service}</div>
-                    <div style={{fontSize:12,color:T.tx3}}>{fmt(r.date)} · {(r.km||0).toLocaleString()} km</div>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                    <div style={{fontWeight:600,fontSize:15,color:T.tx}}>${(r.amount||0).toFixed(2)}</div>
-                    <div style={{color:T.tx4,fontSize:20}}>›</div>
+              )}
+              {heroItem?(
+                <div className="a-hero">
+                  <div className="glow"/><div className="wm"><svg className="ic"><use href={`#${icoFor(heroItem.cat)}`}/></svg></div>
+                  <span className="a-eyebrow"><svg className="ic"><use href="#i-alert"/></svg>Requiere atención</span>
+                  <h2>{heroItem.name}</h2>
+                  <div className="sub">{heroSub(heroItem)}</div>
+                  <div className="meta">{heroItem.lDt?`Último: ${fmt(heroItem.lDt)}${heroItem.lKm>0?` · ${heroItem.lKm.toLocaleString()} km`:""}`:"Sin registro previo"}</div>
+                  <div className="row">
+                    <div className="a-odo"><b>{km0>0?`${km0.toLocaleString()} km`:"—"}</b>Odómetro actual</div>
+                    <button className="a-cta" onClick={()=>setTab("track")}>Ver detalle <svg className="ic"><use href="#i-arrow"/></svg></button>
                   </div>
                 </div>
-              ))}
+              ):homeList.length>0?(
+                <div className="a-hero ok">
+                  <div className="glow"/><div className="wm"><svg className="ic"><use href="#i-check"/></svg></div>
+                  <span className="a-eyebrow"><svg className="ic"><use href="#i-check"/></svg>Todo al día</span>
+                  <h2>Sin pendientes</h2>
+                  <div className="sub">Ningún servicio vencido ni próximo.</div>
+                  <div className="meta">{ok} servicio{ok===1?"":"s"} al día</div>
+                  <div className="row">
+                    <div className="a-odo"><b>{km0>0?`${km0.toLocaleString()} km`:"—"}</b>Odómetro actual</div>
+                    <button className="a-cta" onClick={()=>setTab("track")}>Ver seguimiento <svg className="ic"><use href="#i-arrow"/></svg></button>
+                  </div>
+                </div>
+              ):(
+                <div className="a-hero">
+                  <div className="glow"/><div className="wm"><svg className="ic"><use href="#i-car"/></svg></div>
+                  <span className="a-eyebrow"><svg className="ic"><use href="#i-alert"/></svg>Sin datos</span>
+                  <h2>Empieza a registrar</h2>
+                  <div className="sub">Agrega tu primer servicio para ver el estado del vehículo.</div>
+                  <div className="row">
+                    <div className="a-odo"><b>{km0>0?`${km0.toLocaleString()} km`:"—"}</b>Odómetro actual</div>
+                    <button className="a-cta" onClick={openAdd}>Registrar <svg className="ic"><use href="#i-plus"/></svg></button>
+                  </div>
+                </div>
+              )}
+              <div className="a-chips">
+                <div className="a-chip overdue"><span className="n">{ov}</span><span className="l">Vencidos</span></div>
+                <div className="a-chip soon"><span className="n">{so}</span><span className="l">Próximos</span></div>
+                <div className="a-chip ok"><span className="n">{ok}</span><span className="l">Al día</span></div>
+              </div>
+              <div className="sec-h"><h3>Servicios</h3></div>
+              {homeList.length===0?(
+                <div className="hw-note">Aún no hay servicios con historial. Toca + para registrar el primero.</div>
+              ):(
+                <div className="a-list">
+                  {homeList.map(t=>(
+                    <button key={t.id} className="a-card" onClick={()=>setTab("track")}>
+                      <div className={`tile ${t.st}`}><svg className="ic"><use href={`#${icoFor(t.cat)}`}/></svg></div>
+                      <div className="mid">
+                        <div className="nm">{t.name}</div>
+                        <div className="mt">Últ. {t.lKm>0?`${t.lKm.toLocaleString()} km`:fmt(t.lDt)} · Próx. {t.nKm?`${t.nKm.toLocaleString()} km`:t.nDt?fmt(t.nDt):"—"}</div>
+                        <div className="prog"><i className={t.st} style={{width:`${progOf(t)}%`}}/></div>
+                      </div>
+                      <div className="rt"><span className={`badge ${t.st}`}><span className="bd"/>{sl(t.st)}</span><span className={`rem ${t.st}`}>{remOf(t)}</span></div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* --- ESCRITORIO --- */}
+            <div className="hw-desk d-main2">
+              <div className="d-topbar">
+                <div className="tt">
+                  {saludo&&<div className="k">{saludoHora()}, <b>{firstName}</b></div>}
+                  <h2>{vehicle.brand?`${vehicle.brand} ${vehicle.model}`:"Mi vehículo"}{vehicle.year?<span className="yr"> · {vehicle.year}</span>:null}{km0>0?<span className="kmchip">{km0.toLocaleString()} km</span>:null}</h2>
+                </div>
+                <button className="d-btn" onClick={openAdd}><svg className="ic"><use href="#i-plus"/></svg>Registrar servicio</button>
+              </div>
+              <div className="d-upper">
+                {heroItem?(
+                  <div className="d-hero">
+                    <div className="glow"/><div className="wm"><svg className="ic"><use href={`#${icoFor(heroItem.cat)}`}/></svg></div>
+                    <span className="a-eyebrow"><svg className="ic"><use href="#i-alert"/></svg>Requiere atención</span>
+                    <h3>{heroItem.name}</h3>
+                    <div className="sub">{heroSub(heroItem)}</div>
+                    <div className="meta">{heroItem.lDt?`Último: ${fmt(heroItem.lDt)}${heroItem.lKm>0?` · ${heroItem.lKm.toLocaleString()} km`:""}`:"Sin registro previo"}</div>
+                    <div className="foot"><div className="odo"><b>{km0>0?`${km0.toLocaleString()} km`:"—"}</b><span>Odómetro actual</span></div><button onClick={()=>setTab("track")}>Ver detalle</button></div>
+                  </div>
+                ):homeList.length>0?(
+                  <div className="d-hero ok">
+                    <div className="glow"/><div className="wm"><svg className="ic"><use href="#i-check"/></svg></div>
+                    <span className="a-eyebrow"><svg className="ic"><use href="#i-check"/></svg>Todo al día</span>
+                    <h3>Sin pendientes</h3>
+                    <div className="sub">Ningún servicio vencido ni próximo.</div>
+                    <div className="meta">{ok} servicio{ok===1?"":"s"} al día</div>
+                    <div className="foot"><div className="odo"><b>{km0>0?`${km0.toLocaleString()} km`:"—"}</b><span>Odómetro actual</span></div><button onClick={()=>setTab("track")}>Ver seguimiento</button></div>
+                  </div>
+                ):(
+                  <div className="d-hero">
+                    <div className="glow"/><div className="wm"><svg className="ic"><use href="#i-car"/></svg></div>
+                    <span className="a-eyebrow"><svg className="ic"><use href="#i-alert"/></svg>Sin datos</span>
+                    <h3>Empieza a registrar</h3>
+                    <div className="sub">Agrega tu primer servicio para ver el estado del vehículo.</div>
+                    <div className="foot"><div className="odo"><b>{km0>0?`${km0.toLocaleString()} km`:"—"}</b><span>Odómetro actual</span></div><button onClick={openAdd}>Registrar</button></div>
+                  </div>
+                )}
+                <div className="d-side2">
+                  <div className="d-scard overdue"><div className="n">{ov}</div><div className="tx"><b>Vencido{ov===1?"":"s"}</b><span>Atención inmediata</span></div><div className="dchip"><svg className="ic"><use href="#i-alert"/></svg></div></div>
+                  <div className="d-scard soon"><div className="n">{so}</div><div className="tx"><b>Por vencer</b><span>Próximamente</span></div><div className="dchip"><svg className="ic"><use href="#i-bell"/></svg></div></div>
+                  <div className="d-scard ok"><div className="n">{ok}</div><div className="tx"><b>Al día</b><span>Sin acción requerida</span></div><div className="dchip"><svg className="ic"><use href="#i-check"/></svg></div></div>
+                </div>
+              </div>
+              <div className="sec-h"><h3>Servicios</h3></div>
+              {homeList.length===0?(
+                <div className="hw-note">Aún no hay servicios con historial. Usa «Registrar servicio» para empezar.</div>
+              ):(
+                <div className="d-grid">
+                  {homeList.map(t=>(
+                    <button key={t.id} className="d-card" onClick={()=>setTab("track")}>
+                      <div className="ch"><div className={`tile ${t.st}`}><svg className="ic"><use href={`#${icoFor(t.cat)}`}/></svg></div><span className={`badge ${t.st}`}><span className="bd"/>{sl(t.st)}</span></div>
+                      <div className="nm">{t.name}</div>
+                      <div className={`rem ${t.st}`}>{remOf(t)}</div>
+                      <div className="prog"><i className={t.st} style={{width:`${progOf(t)}%`}}/></div>
+                      <div className="mt"><span>Últ. <b>{t.lKm>0?t.lKm.toLocaleString():fmt(t.lDt)}</b></span><span>Próx. <b>{t.nKm?t.nKm.toLocaleString():t.nDt?fmt(t.nDt):"—"}</b></span></div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </>}
 
