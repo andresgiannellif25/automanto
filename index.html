@@ -91,7 +91,8 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .sec-h h3{font-size:15px;font-weight:800;letter-spacing:-.01em;color:var(--blue-900)}
 .sec-h .lnk{font-size:12.5px;font-weight:700;color:var(--blue-600);background:none;border:none;cursor:pointer;font-family:inherit}
 /* --- móvil: Variante A --- */
-.a-wrap{padding:max(16px,env(safe-area-inset-top)) 18px 22px}
+/* padding-top como forma LARGA a propósito: WebkitiOS descarta env()/max() dentro del shorthand `padding`, y con la declaracion caida el contenido queda a y=0, detras de la isla. La forma larga si la acepta (es lo que usa el header viejo). El shorthand deja el fallback de 16px si algo fallara. */
+.a-wrap{padding:16px 18px 22px;padding-top:max(16px,env(safe-area-inset-top))}
 .hw-greet{padding:2px 2px 12px}
 .hw-greet .hi{font-size:13px;font-weight:600;color:var(--neutral-500)}
 .hw-greet .hi b{color:var(--blue-900);font-weight:800}
