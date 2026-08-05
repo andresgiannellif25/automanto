@@ -48,7 +48,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
    lateral. El resto del contenido todavía es la interfaz previa; se rediseña
    en las fases 2-4. Las clases usan los tokens de la Fase 0. */
 .hw-shell{display:flex;flex-direction:column}
-.hw-main{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
+.hw-main{flex:1;min-width:0;display:flex;flex-direction:column;height:100%;padding-top:env(safe-area-inset-top)}
 /* barra inferior (móvil) */
 .hw-tabbar{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-around;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);padding:10px 12px 0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
 .hw-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:10.5px;font-weight:600;color:var(--neutral-400);padding:0}
@@ -91,8 +91,10 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .sec-h h3{font-size:15px;font-weight:800;letter-spacing:-.01em;color:var(--blue-900)}
 .sec-h .lnk{font-size:12.5px;font-weight:700;color:var(--blue-600);background:none;border:none;cursor:pointer;font-family:inherit}
 /* --- móvil: Variante A --- */
-/* padding-top como forma LARGA a propósito: WebkitiOS descarta env()/max() dentro del shorthand `padding`, y con la declaracion caida el contenido queda a y=0, detras de la isla. La forma larga si la acepta (es lo que usa el header viejo). El shorthand deja el fallback de 16px si algo fallara. */
-.a-wrap{padding:16px 18px 22px;padding-top:max(16px,env(safe-area-inset-top))}
+/* El offset del notch lo maneja ahora .hw-main (padding-top:env, forma larga),
+   así que TODO lo de arriba —banner de actualización incluido— queda bajo la
+   isla. Aquí solo el padding interno normal. */
+.a-wrap{padding:16px 18px 22px}
 .hw-greet{padding:2px 2px 12px}
 .hw-greet .hi{font-size:12.5px;font-weight:600;color:var(--neutral-500)}
 .hw-greet .hi b{color:var(--blue-900);font-weight:800}
@@ -278,12 +280,15 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .cfg-head .greet{font-size:12px;font-weight:600;color:var(--neutral-500)}
 .cfg-head .title{font-size:23px;font-weight:800;letter-spacing:-.025em;color:var(--blue-900);margin-top:3px}
 .theme{display:flex;flex:0 0 auto;background:var(--surface-sunken);border-radius:12px;padding:3px}
-.theme button{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;cursor:pointer;font-size:15px;opacity:.5}
-.theme button.on{background:var(--surface-card);box-shadow:var(--shadow-xs);opacity:1}
+.theme button{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;cursor:pointer;color:var(--neutral-400)}
+.theme button .ic{width:17px;height:17px}
+.theme button.on{background:var(--surface-card);box-shadow:var(--shadow-xs);color:var(--blue-700)}
 .cfg-cols{display:flex;flex-direction:column;gap:20px}
 .cfg-col{display:flex;flex-direction:column;gap:20px;min-width:0}
 @media(min-width:900px){.cfg-cols{flex-direction:row;align-items:flex-start}.cfg-col{flex:1}}
 .cfg-sec-h{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--neutral-400);display:flex;align-items:center;justify-content:space-between;padding:0 2px 9px}
+.cfg-sec-h .t{display:inline-flex;align-items:center;gap:7px}
+.cfg-sec-h .t .ic{width:15px;height:15px;color:var(--blue-600)}
 .cfg-sec-h .add{font-size:12px;font-weight:700;color:var(--blue-600);background:none;border:none;cursor:pointer;font-family:inherit}
 .card2{background:var(--surface-card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);overflow:hidden}
 .ofield{padding:14px 15px}
@@ -327,7 +332,13 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .bkbtn.sec{background:var(--surface-card);color:var(--blue-700);border:1.5px solid var(--border)}
 .bkbtn .ic{width:18px;height:18px;stroke-width:2.1}
 .stat{display:flex;align-items:flex-start;gap:13px;padding:14px 15px;border-top:1px solid var(--neutral-100)}
-.stat .sdot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;margin-top:4px}
+.stat .sico{width:42px;height:42px;flex:0 0 auto;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--surface-sunken);color:var(--neutral-500)}
+.stat .sico .ic{width:22px;height:22px}
+.stat.ok .sico{background:var(--status-ok-bg);color:var(--status-ok)}
+.stat.warn .sico{background:var(--status-due-bg);color:var(--status-due)}
+.stat.bad .sico{background:var(--status-overdue-bg);color:var(--status-overdue)}
+.stat.idle .sico{background:var(--status-idle-bg);color:var(--status-idle)}
+.stat.info .sico{background:var(--blue-50);color:var(--blue-600)}
 .stat .st{font-size:14px;font-weight:800;letter-spacing:-.01em;color:var(--blue-900)}
 .stat .sd{font-size:12px;color:var(--neutral-600);margin-top:3px;line-height:1.45}
 .stat .sact{margin-top:9px}
@@ -391,6 +402,13 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 <symbol id="i-cash" viewBox="0 0 24 24"><rect x="3" y="6.5" width="18" height="11" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6.5 9.5h.02M17.5 14.5h.02"/></symbol>
 <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3.5v11M7.5 10 12 14.5 16.5 10M4.5 20h15"/></symbol>
 <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 14.5v-11M7.5 8 12 3.5 16.5 8M4.5 20h15"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 13.5A8 8 0 0 1 10.5 4a7 7 0 1 0 9.5 9.5Z"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.2 5 6v5.4c0 4.3 3 7.4 7 9.4 4-2 7-5.1 7-9.4V6l-7-2.8Z"/><path d="m9 12 2 2 4-4.2"/></symbol>
+<symbol id="i-shield-half" viewBox="0 0 24 24"><path d="M12 3.2 5 6v5.4c0 4.3 3 7.4 7 9.4 4-2 7-5.1 7-9.4V6l-7-2.8Z"/><path d="M12 3.4v17"/></symbol>
+<symbol id="i-shield-x" viewBox="0 0 24 24"><path d="M12 3.2 5 6v5.4c0 4.3 3 7.4 7 9.4 4-2 7-5.1 7-9.4V6l-7-2.8Z"/><path d="m10 10 4 4M14 10l-4 4"/></symbol>
+<symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="2.8"/><path d="M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M9.6 9.4a2.4 2.4 0 1 1 3.2 2.3c-.8.3-1.3.9-1.3 1.8M12 16.4v.1"/></symbol>
 </svg>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -524,7 +542,6 @@ const CC={Motor:"#FF6B35",Transmisión:"#FF453A",Frenos:"#FF453A",Suspensión:"#
 const DK="automanto_pwa_dismiss";
 const EK="automanto_last_export";   // fecha del último export, por dispositivo
 const IK="automanto_from_import";   // los datos de este dispositivo llegaron importados
-const OWNK="highway_owner";         // nombre del propietario: dato local del dispositivo, FUERA del esquema versionado (como EK/IK). El campo para editarlo llega en la Fase 4.
 
 /* Ícono del sistema de diseño por categoría. Sirve para las tarjetas de Inicio
    y Seguimiento; si falta una categoría cae en el engranaje genérico. */
@@ -683,8 +700,9 @@ function App(){
      dispositivo donde los datos se crearon a mano, que es justo lo contrario. */
   const [fromImp,setFromImp]=useState(()=>{try{return localStorage.getItem(IK)==="1";}catch(_){return false;}});
   // Nombre del propietario para el saludo. Local del dispositivo, no versionado.
-  const [ownerName,setOwnerName]=useState(()=>{try{return localStorage.getItem(OWNK)||"";}catch(_){return"";}});
-  const saveOwner=v=>{setOwnerName(v);try{localStorage.setItem(OWNK,v);}catch(_){}};
+  // El saludo lee el propietario del vehículo (dato versionado). Limpio la clave
+  // separada `highway_owner` que se usó en fases previas y ya no existe.
+  useEffect(()=>{try{localStorage.removeItem("highway_owner");}catch(_){}},[]);
   useEffect(()=>{vRef.current=vehicle;},[vehicle]);
   useEffect(()=>{rRef.current=records;},[records]);
   useEffect(()=>{iRef.current=itvs;},[itvs]);
@@ -903,7 +921,7 @@ function App(){
     return p==null?0:Math.max(4,Math.min(100,Math.round(p)));
   };
   // Saludo: solo si hay nombre guardado; se usa el primer nombre del campo.
-  const firstName=ownerName.trim().split(/\s+/)[0]||"";
+  const firstName=(vehicle.owner||"").trim().split(/\s+/)[0]||"";
   const saludo=firstName?`${saludoHora()}, ${firstName}`:"";
   // Nombre (marca + modelo) y año separados: el nombre lleva el tratamiento
   // fuerte de .vname (21px/800/blue-900) y el año va discreto. Sin km, que ya
@@ -1441,28 +1459,28 @@ function App(){
                 ?(aplicaPurga7d()?"La app está instalada, que es lo que te libra del borrado por inactividad. El navegador no concedió además la marca de persistencia.":"La app está instalada. El navegador no concedió además la marca de persistencia, así que podría borrar datos si necesitara espacio.")
                 :(aplicaPurga7d()?"Safari borra los datos de las pestañas tras unos 7 días sin abrir el sitio. Instala la app para que eso deje de aplicarte.":"El navegador puede borrar los datos si necesita espacio. Instalar la app hace que los trate como permanentes."),
             }[e]||"Un momento.";
-            const pDot=e==="ok"?"var(--green-500)":e==="no"?(stg&&stg.instalada?"var(--amber-500)":"var(--red-500)"):"var(--neutral-400)";
             const accionable=e==="no"&&stg&&!stg.instalada;
-            const rDot=respaldo?(respaldo.c===T.gr?"var(--green-500)":respaldo.c===T.rd?"var(--red-500)":respaldo.c===T.or?"var(--amber-500)":"var(--neutral-400)"):null;
+            // Nivel (color de la caja) e ícono por estado.
+            // Persistencia (5): Protegido→i-shield · Parcial→i-shield-half · Sin proteger→i-shield-x · No disponible→i-db · No se pudo comprobar→i-help.
+            const pLevel=e==="ok"?"ok":e==="no"?(stg&&stg.instalada?"warn":"bad"):e==="na"?"idle":"info";
+            const pIcon=e==="ok"?"i-shield":e==="no"?(stg&&stg.instalada?"i-shield-half":"i-shield-x"):e==="na"?"i-db":"i-help";
+            // Respaldo (3): al día→i-check(verde) · resto→i-bell(naranja/rojo).
+            const rLevel=respaldo?(respaldo.c===T.gr?"ok":respaldo.c===T.rd?"bad":respaldo.c===T.or?"warn":"idle"):null;
+            const rIcon=respaldo?(respaldo.c===T.gr?"i-check":"i-bell"):null;
             const b=swBusca;
             return(
               <div className="a-wrap">
                 <div className="cfg-head">
                   <div>{vehGreet&&<div className="greet">{vehGreet}</div>}<div className="title">Configuración</div></div>
                   <div className="theme">
-                    <button className={!dark?"on":""} onClick={()=>setDark(false)} aria-label="Tema claro">☀️</button>
-                    <button className={dark?"on":""} onClick={()=>setDark(true)} aria-label="Tema oscuro">🌙</button>
+                    <button className={!dark?"on":""} onClick={()=>setDark(false)} aria-label="Tema claro"><svg className="ic"><use href="#i-sun"/></svg></button>
+                    <button className={dark?"on":""} onClick={()=>setDark(true)} aria-label="Tema oscuro"><svg className="ic"><use href="#i-moon"/></svg></button>
                   </div>
                 </div>
                 <div className="cfg-cols">
                   <div className="cfg-col">
-                    <div className="card2 ofield">
-                      <label>Nombre del propietario</label>
-                      <input value={ownerName} onChange={ev=>saveOwner(ev.target.value)} placeholder="Tu nombre completo"/>
-                      <div className="hint">Se usa para el saludo de Inicio (solo el primer nombre). Se guarda solo en este dispositivo y no viaja en los respaldos.</div>
-                    </div>
                     <div>
-                      <div className="cfg-sec-h">Vehículo</div>
+                      <div className="cfg-sec-h"><span className="t"><svg className="ic"><use href="#i-car"/></svg>Vehículo</span></div>
                       <div className="vpanel">
                         <div className="glow"/><div className="wm"><svg className="ic"><use href="#i-car"/></svg></div>
                         <div className="vp-top"><div className="em"><svg className="ic"><use href="#i-car"/></svg></div>
@@ -1478,7 +1496,7 @@ function App(){
                       </div>
                     </div>
                     <div>
-                      <div className="cfg-sec-h">Intervalos de servicio<button className="add" onClick={openAddI}>+ Intervalo</button></div>
+                      <div className="cfg-sec-h"><span className="t"><svg className="ic"><use href="#i-clock"/></svg>Intervalos de servicio</span><button className="add" onClick={openAddI}>+ Intervalo</button></div>
                       <div className="card2" style={{marginBottom:12}}>
                         {custom.map(intervalRow)}
                         <button className="addint" onClick={openAddI}><svg className="ic"><use href="#i-plus"/></svg>Crear intervalo personalizado</button>
@@ -1489,20 +1507,20 @@ function App(){
                   </div>
                   <div className="cfg-col">
                     <div>
-                      <div className="cfg-sec-h">Respaldo de datos</div>
+                      <div className="cfg-sec-h"><span className="t"><svg className="ic"><use href="#i-download"/></svg>Respaldo de datos</span></div>
                       <div className="card2">
                         <div className="bkbtns">
                           <button className="bkbtn pri" onClick={exportData}><svg className="ic"><use href="#i-download"/></svg>Exportar</button>
                           <button className="bkbtn sec" onClick={()=>importRef.current.click()}><svg className="ic"><use href="#i-upload"/></svg>Importar</button>
                         </div>
-                        {respaldo&&<div className="stat"><div className="sdot" style={{background:rDot}}/><div style={{flex:1,minWidth:0}}><div className="st">{respaldo.t}</div><div className="sd">{respaldo.d}</div></div></div>}
+                        {respaldo&&<div className={`stat ${rLevel}`}><div className="sico"><svg className="ic"><use href={`#${rIcon}`}/></svg></div><div style={{flex:1,minWidth:0}}><div className="st">{respaldo.t}</div><div className="sd">{respaldo.d}</div></div></div>}
                         <input ref={importRef} type="file" accept=".json" onChange={importData} style={{display:"none"}}/>
                       </div>
                     </div>
                     <div>
-                      <div className="cfg-sec-h">Almacenamiento</div>
+                      <div className="cfg-sec-h"><span className="t"><svg className="ic"><use href="#i-db"/></svg>Almacenamiento</span></div>
                       <div className="card2">
-                        <div className="stat" style={{borderTop:"none"}}><div className="sdot" style={{background:pDot}}/>
+                        <div className={`stat ${pLevel}`} style={{borderTop:"none"}}><div className="sico"><svg className="ic"><use href={`#${pIcon}`}/></svg></div>
                           <div style={{flex:1,minWidth:0}}>
                             <div className="st">{pTitle}</div><div className="sd">{pDesc}</div>
                             {accionable&&<div className="sact">{puedeInst?<button onClick={doInstall}>Instalar app</button>:<div className="sd" style={{marginTop:0}}>{comoInstalar()}</div>}</div>}
@@ -1512,7 +1530,7 @@ function App(){
                       </div>
                     </div>
                     <div>
-                      <div className="cfg-sec-h">Service worker <span style={{fontWeight:600,letterSpacing:0,textTransform:"none",color:"var(--neutral-400)"}}>· diagnóstico</span></div>
+                      <div className="cfg-sec-h"><span className="t"><svg className="ic"><use href="#i-settings"/></svg>Service worker <span style={{fontWeight:600,letterSpacing:0,textTransform:"none",color:"var(--neutral-400)"}}>· diagnóstico</span></span></div>
                       <div className="card2">
                         {!sw?<div className="swrow"><span className="k">Estado</span><span className="v">Leyendo…</span></div>
                          :!sw.soportado?<div className="swrow"><span className="k">Estado</span><span className="v bad">No soportado</span></div>
@@ -1534,7 +1552,7 @@ function App(){
                       </div>
                     </div>
                     <div>
-                      <div className="cfg-sec-h">Acerca de</div>
+                      <div className="cfg-sec-h"><span className="t"><svg className="ic"><use href="#i-help"/></svg>Acerca de</span></div>
                       <div className="card2"><div className="about"><img src="icon-192.png" alt="Highway"/>
                         <div><div className="nm">Highway</div><div className="vr">Control de mantenimiento · datos v<b>{SCHEMA}</b></div></div>
                         <span className="pwa">PWA</span></div></div>
