@@ -19,6 +19,30 @@ input[type=number]{-moz-appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none}
 ::-webkit-scrollbar{width:0}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* ===== Sistema de diseño Highway (Fase 0 — preparación) =====
+   Tokens de marca portados de los mockups de Claude Design. Están inertes: por
+   ahora ninguna clase ni variable se consume desde el árbol de React, así que
+   no cambian nada visual. Las fases 1-4 irán conectando componentes a esta base.
+   Tipografía: pila del sistema (sin Google Fonts), conservando tamaños/pesos. */
+:root{
+--blue-50:#eef4ff;--blue-100:#dbe8ff;--blue-200:#b8d0ff;--blue-300:#85adff;--blue-400:#4685fb;--blue-500:#016bf5;--blue-600:#0157c8;--blue-700:#01439b;--blue-800:#012a66;--blue-900:#011d47;--blue-950:#01122c;
+--neutral-0:#fff;--neutral-50:#f6f8fb;--neutral-100:#eef1f6;--neutral-200:#e0e5ee;--neutral-300:#c9d1de;--neutral-400:#98a3b6;--neutral-500:#69748a;--neutral-600:#4b5568;--neutral-700:#363f4f;--neutral-800:#222a36;--neutral-900:#131922;--ink:#0b1019;
+--green-50:#e8f7ee;--green-500:#17a34a;--green-600:#128a3e;--green-700:#0e6f32;
+--amber-50:#fdf2e2;--amber-500:#f59310;--amber-600:#d97c06;--amber-700:#b56404;
+--red-50:#fdecec;--red-500:#e11d2e;--red-600:#c1132a;--red-700:#9c0f22;
+--brand:var(--blue-500);--brand-strong:var(--blue-600);--brand-dark:var(--blue-800);--brand-tint:var(--blue-50);
+--brand-gradient:linear-gradient(155deg,#016bf5 0%,#0148a7 52%,#012a66 100%);
+--brand-gradient-soft:linear-gradient(155deg,#2f83ff 0%,#0157c8 100%);
+--text-strong:var(--neutral-900);--text-body:var(--neutral-700);--text-muted:var(--neutral-500);--text-faint:var(--neutral-400);--text-link:var(--blue-600);
+--surface-page:var(--neutral-50);--surface-card:var(--neutral-0);--surface-sunken:var(--neutral-100);--surface-inverse:var(--blue-800);
+--border:var(--neutral-200);--border-strong:var(--neutral-300);
+--status-ok:var(--green-600);--status-ok-bg:var(--green-50);--status-due:var(--amber-600);--status-due-bg:var(--amber-50);--status-overdue:var(--red-600);--status-overdue-bg:var(--red-50);--status-idle:var(--neutral-500);--status-idle-bg:var(--neutral-100);
+--font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;--font-mono:ui-monospace,"SF Mono",monospace;
+--radius-sm:10px;--radius-md:14px;--radius-lg:18px;--radius-xl:24px;--radius-2xl:30px;--radius-pill:999px;
+--shadow-xs:0 1px 2px rgba(1,42,102,.06);--shadow-sm:0 1px 3px rgba(1,42,102,.08),0 1px 2px rgba(1,42,102,.05);--shadow-card:0 2px 10px rgba(1,42,102,.07);--shadow-md:0 6px 20px rgba(1,42,102,.10);--shadow-lg:0 16px 40px rgba(1,42,102,.16);--shadow-brand:0 8px 22px rgba(1,107,245,.30);
+}
+.ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;display:block}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 </style>
 </head>
 <body>
