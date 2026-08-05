@@ -91,7 +91,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .sec-h h3{font-size:15px;font-weight:800;letter-spacing:-.01em;color:var(--blue-900)}
 .sec-h .lnk{font-size:12.5px;font-weight:700;color:var(--blue-600);background:none;border:none;cursor:pointer;font-family:inherit}
 /* --- móvil: Variante A --- */
-.a-wrap{padding:14px 18px 22px}
+.a-wrap{padding:max(16px,env(safe-area-inset-top)) 18px 22px}
 .hw-greet{padding:2px 2px 12px}
 .hw-greet .hi{font-size:13px;font-weight:600;color:var(--neutral-500)}
 .hw-greet .hi b{color:var(--blue-900);font-weight:800}
@@ -101,6 +101,8 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .a-hero .glow{position:absolute;right:-46px;top:-46px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(133,173,255,.45),transparent 68%)}
 .a-hero .wm{position:absolute;right:-14px;bottom:-24px;width:118px;height:118px;color:rgba(255,255,255,.10)}
 .a-hero .wm .ic{width:118px;height:118px;stroke-width:1}
+/* Fix Fase 2: los adornos absolutos (glow/marca de agua) tapaban el botón del hero e interceptaban el clic. */
+.a-hero .glow,.a-hero .wm,.d-hero .glow,.d-hero .wm{pointer-events:none}
 .a-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.16);padding:5px 10px;border-radius:999px}
 .a-eyebrow .ic{width:13px;height:13px;stroke-width:2.2}
 .a-hero h2{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-top:14px}
@@ -748,13 +750,26 @@ function App(){
   // Saludo: solo si hay nombre guardado; se usa el primer nombre del campo.
   const firstName=ownerName.trim().split(/\s+/)[0]||"";
   const saludo=firstName?`${saludoHora()}, ${firstName}`:"";
-  const vehLine=vehicle.brand?`${vehicle.brand} ${vehicle.model} ${vehicle.year}`.trim()+(km0>0?` · ${km0.toLocaleString()} km`:""):"";
+  // Sin kilometraje: es redundante con el odómetro que ya muestra el hero.
+  const vehLine=vehicle.brand?`${vehicle.brand} ${vehicle.model} ${vehicle.year}`.trim():"";
 
   /* form.itvId tiene tres valores posibles y cada uno significa algo distinto:
        undefined → todavía no se eligió nada (formulario nuevo)
        null      → "Otro", deliberadamente sin seguimiento
        string    → vinculado a ese intervalo                                  */
   const openAdd=()=>{setForm({...EMPTY_F,itvId:undefined});setEditId(null);setShowRec(true);};
+
+  /* ⚠⚠ TEMPORAL — HERRAMIENTA DE PRUEBA. Borra los datos propios y vuelve al
+     modo demo (SAMPLE_R) para poder probar el rediseño. QUITAR (función + su
+     sección en Configuración) antes de dar por terminado el rediseño. */
+  const resetDemo=()=>{
+    if(!window.confirm("⚠ HERRAMIENTA DE PRUEBA\n\nEsto BORRA todos tus datos guardados (vehículo, registros e intervalos personalizados) y repone los datos de ejemplo.\n\nEsta acción no se puede deshacer. ¿Continuar?"))return;
+    try{localStorage.removeItem(SK);}catch(_){}
+    idbSet(null); // deja el almacén sin documento: al recargar, migrate(null) => modo demo
+    setVehicle({...INIT_V});setVDraft({...INIT_V});setRecords([]);setItvs(DEFAULT_INT);
+    setEditId(null);setShowRec(false);setSeeded(false);setUpdAt(null);
+    setSyncMsg("Datos de ejemplo restaurados");
+  };
   const openEdit=r=>{setForm({...r,itvId:r.itvId===undefined?null:r.itvId,km:String(r.km),amount:String(r.amount)});setEditId(r.id);setShowRec(true);};
   const pickItv=v=>{
     // Al pasar de un intervalo a "Otro" se limpia lo que se había
@@ -884,7 +899,7 @@ function App(){
     {id:"home",label:"Inicio",icon:"🏠",sym:"i-home"},
     {id:"track",label:"Seguimiento",icon:"⏱",sym:"i-clock"},
     {id:"records",label:"Registros",icon:"📋",sym:"i-list"},
-    {id:"config",label:"Config",icon:"⚙️",sym:"i-settings"},
+    {id:"config",label:"Configuración",icon:"⚙️",sym:"i-settings"},
   ];
 
   if(!loaded)return(
@@ -917,7 +932,7 @@ function App(){
       {/* HEADER — oculto en Inicio: esa pantalla trae su propio encabezado con saludo (Fase 2). Se redisena por pantalla en fases 3-4. */}
       {tab!=="home"&&<div style={{background:T.nb,flexShrink:0,padding:"0 16px 10px",paddingTop:"max(16px, env(safe-area-inset-top))",borderBottom:`0.5px solid ${T.br}`,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{fontSize:22,fontWeight:700}}>{tab==="home"?"🚗 Panel":tab==="track"?"⏱ Seguimiento":tab==="records"?"📋 Registros":"⚙️ Config"}</div>
+          <div style={{fontSize:22,fontWeight:700}}>{tab==="home"?"🚗 Panel":tab==="track"?"⏱ Seguimiento":tab==="records"?"📋 Registros":"⚙️ Configuración"}</div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
             {tab==="records"&&<button onClick={openAdd} style={{background:T.ac,color:"#fff",border:"none",borderRadius:20,padding:"7px 16px",fontSize:14,fontWeight:600,cursor:"pointer"}}>+ Nuevo</button>}
             {tab==="config"&&<button onClick={openAddI} style={{background:T.gr,color:"#fff",border:"none",borderRadius:20,padding:"7px 16px",fontSize:14,fontWeight:600,cursor:"pointer"}}>+ Intervalo</button>}
@@ -1032,7 +1047,7 @@ function App(){
               <div className="d-topbar">
                 <div className="tt">
                   {saludo&&<div className="k">{saludoHora()}, <b>{firstName}</b></div>}
-                  <h2>{vehicle.brand?`${vehicle.brand} ${vehicle.model}`:"Mi vehículo"}{vehicle.year?<span className="yr"> · {vehicle.year}</span>:null}{km0>0?<span className="kmchip">{km0.toLocaleString()} km</span>:null}</h2>
+                  <h2>{vehicle.brand?`${vehicle.brand} ${vehicle.model}`:"Mi vehículo"}{vehicle.year?<span className="yr"> · {vehicle.year}</span>:null}</h2>
                 </div>
                 <button className="d-btn" onClick={openAdd}><svg className="ic"><use href="#i-plus"/></svg>Registrar servicio</button>
               </div>
@@ -1372,6 +1387,13 @@ function App(){
                 </div>
               ))}
             </div>
+
+            {/* ⚠⚠ TEMPORAL — HERRAMIENTA DE PRUEBA. QUITAR antes de terminar el rediseño. */}
+            <div style={{...sh,color:T.rd,marginTop:22}}>Herramienta de prueba — temporal</div>
+            <div style={{...card(),border:`1px dashed ${T.rd}`,padding:16}}>
+              <div style={{fontSize:13,color:T.tx2,marginBottom:12,lineHeight:1.5}}>Borra todos los datos guardados y repone los datos de ejemplo. Solo sirve para probar el rediseño; se eliminará antes de terminarlo.</div>
+              <button onClick={resetDemo} style={{background:"transparent",color:T.rd,border:`1px solid ${T.rd}`,borderRadius:12,padding:"11px 16px",fontSize:14,fontWeight:600,cursor:"pointer",width:"100%"}}>♻︎ Reiniciar a datos de ejemplo</button>
+            </div>
           </>}
 
         </div>
@@ -1383,7 +1405,7 @@ function App(){
         <button className={"hw-tab"+(tab==="track"?" on":"")} onClick={()=>setTab("track")}><svg className="ic"><use href="#i-clock"/></svg>Seguimiento</button>
         <button className="hw-fab" onClick={openAdd} aria-label="Agregar registro"><svg className="ic"><use href="#i-plus"/></svg></button>
         <button className={"hw-tab"+(tab==="records"?" on":"")} onClick={()=>setTab("records")}><svg className="ic"><use href="#i-list"/></svg>Registros</button>
-        <button className={"hw-tab"+(tab==="config"?" on":"")} onClick={()=>setTab("config")}><svg className="ic"><use href="#i-settings"/></svg>Config</button>
+        <button className={"hw-tab"+(tab==="config"?" on":"")} onClick={()=>setTab("config")}><svg className="ic"><use href="#i-settings"/></svg>Configuración</button>
       </div>
 
       </div>{/* /hw-main */}
