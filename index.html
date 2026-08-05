@@ -43,10 +43,49 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 }
 .ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;display:block}
 .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+/* ── Fase 1: shell responsive + navegación ──
+   Móvil (<900px): barra inferior con FAB central. Escritorio (>=900px): barra
+   lateral. El resto del contenido todavía es la interfaz previa; se rediseña
+   en las fases 2-4. Las clases usan los tokens de la Fase 0. */
+.hw-shell{display:flex;flex-direction:column}
+.hw-main{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
+/* barra inferior (móvil) */
+.hw-tabbar{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-around;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);padding:10px 12px 0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+.hw-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:10.5px;font-weight:600;color:var(--neutral-400);padding:0}
+.hw-tab.on{color:var(--brand)}
+.hw-tab .ic{width:23px;height:23px}
+.hw-fab{flex:0 0 auto;width:56px;height:56px;margin-top:-18px;border-radius:20px;background:var(--brand-gradient);box-shadow:var(--shadow-brand);display:flex;align-items:center;justify-content:center;color:#fff;border:none;cursor:pointer}
+.hw-fab .ic{width:26px;height:26px;stroke-width:2.2}
+/* barra lateral (escritorio) */
+.hw-side{display:none;flex-direction:column;width:236px;flex:0 0 auto;background:var(--surface-card);border-right:1px solid var(--border);padding:24px 16px}
+.hw-side .d-brand{display:flex;align-items:center;gap:11px;padding:4px 8px 26px}
+.hw-side .d-brand img{width:38px;height:38px;border-radius:11px}
+.hw-side .d-brand b{display:block;font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--blue-900)}
+.hw-side .d-brand span{display:block;font-size:11px;font-weight:600;color:var(--neutral-400)}
+.hw-side .d-nav{display:flex;flex-direction:column;gap:4px}
+.hw-side .d-navi{display:flex;align-items:center;gap:12px;height:44px;padding:0 14px;border-radius:12px;font-size:14px;font-weight:600;color:var(--neutral-600);background:none;border:none;cursor:pointer;font-family:inherit;width:100%;text-align:left}
+.hw-side .d-navi .ic{width:20px;height:20px}
+.hw-side .d-navi.active{background:var(--brand-tint);color:var(--blue-700);font-weight:700}
+.hw-side-sp{flex:1}
+@media(min-width:900px){
+  .hw-shell{flex-direction:row}
+  .hw-side{display:flex}
+  .hw-tabbar{display:none}
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
+
+<!-- Sprite de íconos del sistema de diseño (Fase 1: navegación). Oculto; se
+     referencia con <use href="#i-..."/>. Se ampliará en fases posteriores. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3.8 11.3 12 4l8.2 7.3"/><path d="M5.8 9.8V19h12.4V9.8"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.4V12l3 1.8"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8.5 6.5h11M8.5 12h11M8.5 17.5h11M4.4 6.5h.02M4.4 12h.02M4.4 17.5h.02"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.1"/><path d="M12 2.4v2.6M12 19v2.6M4.4 4.4l1.9 1.9M17.7 17.7l1.9 1.9M2.4 12H5M19 12h2.6M4.4 19.6l1.9-1.9M17.7 6.3l1.9-1.9"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+</svg>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -668,10 +707,10 @@ function App(){
   const sh={fontSize:12,fontWeight:600,color:T.tx3,textTransform:"uppercase",letterSpacing:0.6,marginBottom:8,paddingLeft:2};
 
   const TABS=[
-    {id:"home",label:"Inicio",icon:"🏠"},
-    {id:"track",label:"Seguimiento",icon:"⏱"},
-    {id:"records",label:"Registros",icon:"📋"},
-    {id:"config",label:"Config",icon:"⚙️"},
+    {id:"home",label:"Inicio",icon:"🏠",sym:"i-home"},
+    {id:"track",label:"Seguimiento",icon:"⏱",sym:"i-clock"},
+    {id:"records",label:"Registros",icon:"📋",sym:"i-list"},
+    {id:"config",label:"Config",icon:"⚙️",sym:"i-settings"},
   ];
 
   if(!loaded)return(
@@ -684,7 +723,22 @@ function App(){
   );
 
   return(
-    <div style={{background:T.bg,color:T.tx,height:"100vh",display:"flex",flexDirection:"column",fontFamily:ff,WebkitFontSmoothing:"antialiased"}}>
+    <div className="hw-shell" style={{background:T.bg,color:T.tx,height:"100vh",fontFamily:ff,WebkitFontSmoothing:"antialiased"}}>
+
+      {/* NAV LATERAL (escritorio, >=900px) */}
+      <aside className="hw-side">
+        <div className="d-brand"><img src="icon-192.png" alt="Highway"/><div><b>Highway</b><span>Mantenimiento</span></div></div>
+        <nav className="d-nav">
+          {TABS.map(t=>(
+            <button key={t.id} className={"d-navi"+(tab===t.id?" active":"")} onClick={()=>setTab(t.id)}>
+              <svg className="ic"><use href={`#${t.sym}`}/></svg>{t.label}
+            </button>
+          ))}
+        </nav>
+        <div className="hw-side-sp"/>
+      </aside>
+
+      <div className="hw-main">
 
       {/* HEADER */}
       <div style={{background:T.nb,flexShrink:0,padding:"0 16px 10px",paddingTop:"max(16px, env(safe-area-inset-top))",borderBottom:`0.5px solid ${T.br}`,zIndex:50}}>
@@ -1077,13 +1131,25 @@ function App(){
         </div>
       </div>
 
+      {/* BARRA INFERIOR (móvil, <900px) — el FAB central abre el mismo flujo de alta que ya existía */}
+      <div className="hw-tabbar">
+        <button className={"hw-tab"+(tab==="home"?" on":"")} onClick={()=>setTab("home")}><svg className="ic"><use href="#i-home"/></svg>Inicio</button>
+        <button className={"hw-tab"+(tab==="track"?" on":"")} onClick={()=>setTab("track")}><svg className="ic"><use href="#i-clock"/></svg>Seguimiento</button>
+        <button className="hw-fab" onClick={openAdd} aria-label="Agregar registro"><svg className="ic"><use href="#i-plus"/></svg></button>
+        <button className={"hw-tab"+(tab==="records"?" on":"")} onClick={()=>setTab("records")}><svg className="ic"><use href="#i-list"/></svg>Registros</button>
+        <button className={"hw-tab"+(tab==="config"?" on":"")} onClick={()=>setTab("config")}><svg className="ic"><use href="#i-settings"/></svg>Config</button>
+      </div>
+
+      </div>{/* /hw-main */}
+
       {/* MODAL: REGISTRO */}
       {showRec&&(
-        <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-end"}}>
-          <div style={{background:T.bg2,borderRadius:"20px 20px 0 0",width:"100%",maxHeight:"90vh",overflowY:"auto",WebkitOverflowScrolling:"touch",paddingBottom:32}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px 12px",position:"sticky",top:0,background:T.bg2,zIndex:1,borderBottom:`0.5px solid ${T.br}`}}>
-              <div style={{fontWeight:700,fontSize:18,color:T.tx}}>{editId?"Editar registro":"Nuevo registro"}</div>
-              <button onClick={()=>{setShowRec(false);setEditId(null);}} style={{background:T.bg4,border:"none",borderRadius:"50%",width:30,height:30,cursor:"pointer",color:T.tx,fontSize:16}}>✕</button>
+        <div onClick={()=>{setShowRec(false);setEditId(null);}} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(1,18,44,0.5)",backdropFilter:"blur(3px)",WebkitBackdropFilter:"blur(3px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:T.bg2,borderRadius:"26px 26px 0 0",width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto",WebkitOverflowScrolling:"touch",paddingBottom:32,boxShadow:"0 -14px 40px rgba(1,42,102,0.22)"}}>
+            <div style={{width:38,height:4,borderRadius:999,background:T.br,margin:"8px auto 2px"}}/>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 20px 12px",position:"sticky",top:0,background:T.bg2,zIndex:1}}>
+              <div style={{fontWeight:800,fontSize:18,color:T.tx,letterSpacing:"-0.02em"}}>{editId?"Editar registro":"Nuevo registro"}</div>
+              <button onClick={()=>{setShowRec(false);setEditId(null);}} style={{background:T.bg4,border:"none",borderRadius:10,width:32,height:32,cursor:"pointer",color:T.tx3,fontSize:16}}>✕</button>
             </div>
             <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:14}}>
               {[
@@ -1166,21 +1232,6 @@ function App(){
         </div>
       )}
 
-      {/* TAB BAR */}
-      <div style={{background:T.tb,borderTop:`0.5px solid ${T.br}`,flexShrink:0,paddingBottom:"max(12px, env(safe-area-inset-bottom))"}}>
-        <div style={{display:"flex",justifyContent:"space-around",padding:"8px 0 0"}}>
-          {TABS.map(t=>{
-            const a=tab===t.id;
-            return(
-              <button key={t.id} onClick={()=>setTab(t.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"4px 16px",background:"none",border:"none",cursor:"pointer",color:a?T.ac:T.tx3,minWidth:60}}>
-                <div style={{fontSize:22,opacity:a?1:0.6}}>{t.icon}</div>
-                <div style={{fontSize:10,fontWeight:a?600:400}}>{t.label}</div>
-                {a&&<div style={{width:4,height:4,borderRadius:"50%",background:T.ac,marginTop:1}}/>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }
