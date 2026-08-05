@@ -657,7 +657,8 @@ const dDiff=(a,b)=>Math.round((new Date(a)-new Date(b))/(864e5));
 
 function App(){
   const [dark,setDark]=useState(false); // claro por defecto durante el rediseño (Fase 2); el modo oscuro real se reconstruye en su sesión aparte
-  const [tab,setTab]=useState("home");
+  // Al aplicar una actualización se recarga; se conserva la pestaña que estaba abierta.
+  const [tab,setTab]=useState(()=>{try{const t=sessionStorage.getItem("hw_apply_tab");if(t){sessionStorage.removeItem("hw_apply_tab");return t;}}catch(_){}return"home";});
   const [loaded,setLoaded]=useState(false);
   const [syncMsg,setSyncMsg]=useState("Cargando…");
   const [vehicle,setVehicle]=useState({...INIT_V});
@@ -824,6 +825,24 @@ function App(){
     pRef.current=null;setCanInst(false);setPuedeInst(false);
   };
   const dismissPWA=()=>{try{localStorage.setItem(DK,"1");}catch(_){}setCanInst(false);setIosTip(false);};
+
+  /* Aplicar la actualización desde el banner. No basta con recargar: el SW
+     podía servir aún la copia vieja (carrera con su caché). Se le pide purgar
+     el documento cacheado, se espera su confirmación y recién ahí se recarga,
+     así la carga trae la versión fresca sí o sí. Se conserva la pestaña actual
+     para no saltar a Inicio. Si no hay SW controlando o no responde, recarga
+     igual por el timeout. */
+  const aplicarActualizacion=()=>{
+    try{sessionStorage.setItem("hw_apply_tab",tab);}catch(_){}
+    const ctrl=("serviceWorker" in navigator)?navigator.serviceWorker.controller:null;
+    if(!ctrl){location.reload();return;}
+    let hecho=false;
+    const recargar=()=>{if(hecho)return;hecho=true;location.reload();};
+    const h=ev=>{if(ev.data&&ev.data.type==="AUTOMANTO_UPDATE_APPLIED"){navigator.serviceWorker.removeEventListener("message",h);recargar();}};
+    navigator.serviceWorker.addEventListener("message",h);
+    ctrl.postMessage({type:"APLICAR_ACTUALIZACION"});
+    setTimeout(recargar,1500);
+  };
 
   const save=(v,r,i)=>{
     setSeeded(true);
@@ -1240,7 +1259,7 @@ function App(){
       {swUpd&&(
         <div style={{background:T.ac,flexShrink:0,padding:"9px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div style={{fontSize:13,color:"#fff",fontWeight:500}}>Nueva versión disponible</div>
-          <button onClick={()=>location.reload()} style={{background:"rgba(255,255,255,0.25)",color:"#fff",border:"none",borderRadius:16,padding:"5px 14px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Actualizar</button>
+          <button onClick={aplicarActualizacion} style={{background:"rgba(255,255,255,0.25)",color:"#fff",border:"none",borderRadius:16,padding:"5px 14px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Actualizar</button>
         </div>
       )}
 

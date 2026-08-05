@@ -75,6 +75,23 @@ async function notifyUpdate() {
   cs.forEach(c => c.postMessage({ type: "AUTOMANTO_UPDATE_READY" }));
 }
 
+/* La página pide aplicar la actualización (botón "Actualizar"). Se borra el
+   documento cacheado y la marca, de modo que la siguiente carga lo traiga
+   fresco de la red, y se confirma para que la página recargue recién entonces.
+   Sin esto el botón sólo recargaba y podía servir la copia vieja. */
+self.addEventListener("message", e => {
+  if (!e.data || e.data.type !== "APLICAR_ACTUALIZACION") return;
+  e.waitUntil((async () => {
+    try {
+      const c = await caches.open(CACHE);
+      await c.delete(docKey(), { ignoreSearch: true });
+      await c.delete(MARK);
+    } catch (_) { /* si falla, la página recarga igual por el timeout */ }
+    const cs = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    cs.forEach(c => c.postMessage({ type: "AUTOMANTO_UPDATE_APPLIED" }));
+  })());
+});
+
 /* Pide la copia de red, la guarda, y avisa si el documento cambió.
  *
  * Ojo: no se puede hacer fetch(peticiónDeNavegación, init). El constructor de
@@ -91,11 +108,15 @@ async function revalidate(cache, key, req, isDoc, cachedClone) {
     // cuerpo ya no se puede volver a clonar.
     const paraCache = res.clone();
     const paraComparar = res.clone();
+    // Se guarda el documento nuevo ANTES de avisar. Si se avisa primero (como
+    // antes), hay una carrera: la página recibe el aviso, el usuario pulsa
+    // "Actualizar", recarga, y el SW todavía sirve la copia vieja porque este
+    // put aún no había corrido. El banner reaparecía y parecía "no hacer nada".
+    await cache.put(key, paraCache);
     if (isDoc && cachedClone) {
       const [nuevo, viejo] = await Promise.all([paraComparar.text(), cachedClone.text()]);
       if (nuevo !== viejo) { await cache.put(MARK, new Response("1")); await notifyUpdate(); }
     }
-    await cache.put(key, paraCache);
     return res;
   } catch (_) {
     return null;
