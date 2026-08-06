@@ -12,6 +12,20 @@
 <link rel="manifest" href="manifest.webmanifest"/>
 <link rel="icon" type="image/png" href="icon-192.png"/>
 <link rel="apple-touch-icon" href="icon-apple.png"/>
+<script>
+/* Modo oscuro: fija el tema antes del primer pintado para evitar el destello claro
+   y para que el estado lo mande la app, no el sistema operativo. Lee la preferencia
+   local (la misma que persiste el interruptor de Configuración); si no hay, queda
+   claro. React vuelve a sincronizar esto en cuanto monta (efecto sobre `dark`). */
+(function(){try{
+  var d=localStorage.getItem("hw_theme")==="dark";
+  var r=document.documentElement;
+  r.setAttribute("data-theme",d?"dark":"light");
+  r.style.colorScheme=d?"dark":"light";
+  var m=document.querySelector('meta[name="theme-color"]');
+  if(m)m.setAttribute("content",d?"#0c121c":"#f6f8fb");
+}catch(_){}})();
+</script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
 html,body{height:100%;background:var(--surface-page)}
@@ -41,6 +55,45 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 --radius-sm:10px;--radius-md:14px;--radius-lg:18px;--radius-xl:24px;--radius-2xl:30px;--radius-pill:999px;
 --shadow-xs:0 1px 2px rgba(1,42,102,.06);--shadow-sm:0 1px 3px rgba(1,42,102,.08),0 1px 2px rgba(1,42,102,.05);--shadow-card:0 2px 10px rgba(1,42,102,.07);--shadow-md:0 6px 20px rgba(1,42,102,.10);--shadow-lg:0 16px 40px rgba(1,42,102,.16);--shadow-brand:0 8px 22px rgba(1,107,245,.30);
 }
+/* ===== Modo oscuro (Fase 5) — capa de paleta sobre el modo claro =====
+   Segundo juego de tokens tomado de los diseños oscuros: neutrales invertidos,
+   azules aclarados para fondo oscuro, colores de estado más brillantes y sombras
+   en negro. NO es un tema paralelo: se activa con data-theme="dark" en <html>, que
+   pone el mismo estado `dark` de React (el interruptor de Configuración) — el que
+   ya movía el tema heredado `T`. El gradiente de marca no se toca: el hero conserva
+   su identidad; solo cambian su sombra y los detalles internos que lo necesitan. */
+:root[data-theme="dark"]{
+--neutral-0:#141d2b;--neutral-50:#0c121c;--neutral-100:#1b2534;--neutral-200:#293446;--neutral-300:#3c495d;--neutral-400:#7e8ca2;--neutral-500:#9aa6ba;--neutral-600:#b6c0d1;--neutral-700:#d2d9e4;--neutral-800:#e4e9f1;--neutral-900:#eef3fa;--ink:#eaf0f8;
+--blue-50:rgba(1,107,245,.18);--blue-600:#6fa8ff;--blue-700:#7fb2ff;--blue-800:#bcd3ff;--blue-900:#eaf1ff;
+--green-50:rgba(23,163,74,.16);--amber-50:rgba(245,147,16,.15);--red-50:rgba(225,29,46,.16);
+--surface-page:var(--neutral-50);--surface-card:var(--neutral-0);--surface-sunken:var(--neutral-100);--surface-inverse:#0a2650;
+--border:#283244;--border-strong:#3c495d;
+--text-strong:var(--neutral-900);--text-body:var(--neutral-700);--text-muted:var(--neutral-500);--text-faint:var(--neutral-400);--text-link:#7fb2ff;
+--status-ok:#54d38a;--status-ok-bg:rgba(23,163,74,.16);--status-due:#f7b64a;--status-due-bg:rgba(245,147,16,.16);--status-overdue:#fb7185;--status-overdue-bg:rgba(225,29,46,.18);--status-idle:#9aa6ba;--status-idle-bg:rgba(255,255,255,.07);
+--shadow-xs:0 1px 2px rgba(0,0,0,.3);--shadow-sm:0 1px 3px rgba(0,0,0,.34);--shadow-card:0 2px 12px rgba(0,0,0,.34);--shadow-md:0 8px 24px rgba(0,0,0,.4);--shadow-lg:0 20px 46px rgba(0,0,0,.5);--shadow-brand:0 10px 26px rgba(1,60,150,.55);
+}
+/* Ajustes que no salen de un token porque el color claro estaba fijo en la clase.
+   Reproducen los overrides puntuales de los diseños oscuros (verificados uno a uno). */
+:root[data-theme="dark"] .hw-tabbar{background:rgba(16,23,36,.82)}
+/* Hero: el botón claro sobre el gradiente pasa a azul de marca — en oscuro --blue-700
+   se aclara y perdería contraste sobre el blanco del botón. */
+:root[data-theme="dark"] .a-cta,:root[data-theme="dark"] .d-hero .foot button{color:var(--brand)}
+/* Chips de categoría: mezcla sobre transparente en vez de sobre blanco. */
+:root[data-theme="dark"] .cchip{background:color-mix(in srgb,var(--cc) 24%,transparent);color:color-mix(in srgb,var(--cc) 52%,#fff)}
+/* Cajas de huérfano y de datos de ejemplo: fondo ámbar translúcido, texto ámbar claro. */
+:root[data-theme="dark"] .r-orphan{background:rgba(245,147,16,.12);border-color:rgba(245,147,16,.32)}
+:root[data-theme="dark"] .r-orphan .ot,:root[data-theme="dark"] .r-orphan .ox{color:#f7b64a}
+:root[data-theme="dark"] .r-link{border-color:rgba(245,147,16,.4)}
+:root[data-theme="dark"] .r-link>.ic{color:#f7b64a}
+:root[data-theme="dark"] .r-demo{border-color:rgba(245,147,16,.32)}
+:root[data-theme="dark"] .r-demo b,:root[data-theme="dark"] .r-demo span{color:#f7b64a}
+/* Botones de peligro: rojo claro en vez de mezcla con blanco. */
+:root[data-theme="dark"] .r-btn.danger,:root[data-theme="dark"] .irow .ib.danger,:root[data-theme="dark"] .tool button{color:#fb7185;border-color:rgba(225,29,46,.5)}
+/* Herramienta temporal: la mezcla rojo+blanco daría un fondo casi blanco; se hace translúcida. */
+:root[data-theme="dark"] .tool{background:rgba(225,29,46,.1)}
+/* Botón sólido del diagnóstico del SW: --blue-600 se aclara; se ancla al azul de marca
+   para no perder contraste con el texto blanco. */
+:root[data-theme="dark"] .swfoot button{background:var(--brand)}
 .ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;display:block}
 .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 /* ── Fase 1: shell responsive + navegación ──
@@ -656,7 +709,11 @@ const dDiff=(a,b)=>Math.round((new Date(a)-new Date(b))/(864e5));
    y se editan por el modal (openEditI). */
 
 function App(){
-  const [dark,setDark]=useState(false); // claro por defecto durante el rediseño (Fase 2); el modo oscuro real se reconstruye en su sesión aparte
+  // Tema: claro por defecto. La preferencia se guarda en un dato local del
+  // dispositivo (no versionado, no viaja en respaldos), así el interruptor
+  // sobrevive a las recargas — incluida la del flujo "Actualizar", que reinicia
+  // el estado de React. El interruptor de Configuración sigue siendo el mismo.
+  const [dark,setDark]=useState(()=>{try{return localStorage.getItem("hw_theme")==="dark";}catch(_){return false;}});
   // Al aplicar una actualización se recarga; se conserva la pestaña que estaba abierta.
   const [tab,setTab]=useState(()=>{try{const t=sessionStorage.getItem("hw_apply_tab");if(t){sessionStorage.removeItem("hw_apply_tab");return t;}}catch(_){}return"home";});
   const [loaded,setLoaded]=useState(false);
@@ -704,6 +761,19 @@ function App(){
   // El saludo lee el propietario del vehículo (dato versionado). Limpio la clave
   // separada `highway_owner` que se usó en fases previas y ya no existe.
   useEffect(()=>{try{localStorage.removeItem("highway_owner");}catch(_){}},[]);
+  /* Puente entre el interruptor (estado `dark`) y las variables CSS: las pantallas
+     nuevas se pintan con tokens, así que el tema tiene que aplicarse en el CSS, no
+     solo en React. Marca <html data-theme> para activar el bloque de paleta oscura,
+     fija color-scheme (controles nativos, barras de scroll) y actualiza el color de
+     la barra de estado del PWA. Persiste la preferencia para la próxima carga. */
+  useEffect(()=>{
+    const r=document.documentElement;
+    r.setAttribute("data-theme",dark?"dark":"light");
+    r.style.colorScheme=dark?"dark":"light";
+    const m=document.querySelector('meta[name="theme-color"]');
+    if(m)m.setAttribute("content",dark?"#0c121c":"#f6f8fb");
+    try{localStorage.setItem("hw_theme",dark?"dark":"light");}catch(_){}
+  },[dark]);
   useEffect(()=>{vRef.current=vehicle;},[vehicle]);
   useEffect(()=>{rRef.current=records;},[records]);
   useEffect(()=>{iRef.current=itvs;},[itvs]);

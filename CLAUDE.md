@@ -278,7 +278,7 @@ Auditado contra el código el 2026-07-28.
 
   Aplica a **todo**: el texto de la interfaz, los comentarios del código, los mensajes de commit y —sobre todo— **las explicaciones dirigidas a Andrés**: informes, razonamientos, respuestas en la conversación. No es sólo una convención de producto, es cómo se le habla.
 - Nombres de variables cortos ya establecidos (`T` = tema, `CC` = colores de categoría, `fT`/`fR` = listas filtradas, `dispR` = registros mostrados). Mantener consistencia.
-- **Tema: claro por defecto durante el rediseño.** `dark` arranca en `false` y el seguimiento de `prefers-color-scheme` está **desactivado** (comentado) para no pisar ese default. El toggle manual (`D.dark` / `D.light`) sigue, pero sólo afecta a los restos con estilo heredado; las pantallas nuevas usan tokens claros sin variante oscura. El modo oscuro real se reconstruye en su propia sesión (§11)
+- **Tema: claro por defecto, con modo oscuro real (Fase 5).** `dark` arranca en `false` **salvo** que exista la preferencia local `hw_theme==="dark"`. El seguimiento de `prefers-color-scheme` sigue **desactivado** (comentado): el tema lo manda la app, no el SO. El toggle (`D.dark` / `D.light` para los restos heredados) ahora, además, marca `<html data-theme>` para activar el bloque de tokens oscuros de las pantallas nuevas. Ver §11 (Fase 5)
 - **Safe-area del notch: forma larga, nunca dentro del shorthand `padding`** (WebkitiOS descarta la declaración entera). El offset vive en `.hw-main` (`padding-top:env(safe-area-inset-top)`); la barra inferior usa `padding-bottom:env(safe-area-inset-bottom)` (§11)
 - Cambios **incrementales y verificables**, no reescrituras completas
 - Antes de tocar el modelo de datos, avisar: puede romper los backups JSON existentes
@@ -301,13 +301,13 @@ Consecuencia práctica para cualquier sesión abierta aquí: **no introduzcas cu
 
 ---
 
-## 11. Rediseño visual (modo claro) — estado actual
+## 11. Rediseño visual (modo claro y oscuro) — estado actual
 
-En una sesión de rediseño se rehízo la interfaz de las cuatro pantallas a partir de mockups (Claude Design), **en modo claro**. Convive con la arquitectura previa: la lógica (§4–§7) no cambió; lo que cambió es la **capa de presentación**.
+En una sesión de rediseño se rehízo la interfaz de las cuatro pantallas a partir de mockups (Claude Design), **en modo claro** (Fases 1–4); en una sesión posterior se añadió el **modo oscuro** como capa de paleta (Fase 5). Convive con la arquitectura previa: la lógica (§4–§7) no cambió; lo que cambió es la **capa de presentación**.
 
 ### Enfoque general
 
-- **Claro por defecto.** El modo oscuro real queda para una sesión aparte. `dark` arranca en `false` y el seguimiento automático de `prefers-color-scheme` está **desactivado** (comentado) para no pisar ese default. El toggle de Config sigue manual, pero sólo afecta a los restos con estilo heredado (`T`): las pantallas nuevas usan tokens claros sin variante oscura.
+- **Claro por defecto, oscuro opcional.** `dark` arranca en `false` salvo preferencia guardada. El seguimiento automático de `prefers-color-scheme` sigue **desactivado** (comentado): el tema lo decide la app, no el SO. El modo oscuro es una **capa de paleta** sobre lo mismo (Fase 5, más abajo), no un segundo diseño.
 - **Sistema de diseño en CSS.** En el `<style>` hay un bloque `:root` con tokens de marca (escalas azul/neutros/estado, radios, sombras) y utilidades (`.ic`, `.mono`), con **tipografía de sistema** (sin Google Fonts). Las pantallas nuevas se estilan con **clases CSS**; los modales heredados aún usan objetos inline (`T`). Un **sprite SVG** oculto (`<symbol id="i-...">`) provee los íconos; se usan con `<use href="#i-...">`.
 - **Responsive, punto de quiebre 900px.** Shell `.hw-shell`: móvil (<900) = columna con **barra inferior** (`.hw-tabbar` + FAB central `.hw-fab`); escritorio (≥900) = fila con **barra lateral** (`.hw-side`). Las pantallas con layout distinto por formato duplican el marcado y alternan con `.hw-mob`/`.hw-desk` (display por media query); Config usa un solo marcado que refluye a 2 columnas (`.cfg-cols`).
 - **Cada pantalla trae su propio encabezado.** El header compartido viejo se eliminó por completo.
@@ -330,9 +330,21 @@ Lee el **primer nombre de `vehicle.owner`** (dato versionado) y el momento del d
 - **Propietario unificado.** El saludo lee `vehicle.owner`; se eliminó el campo y la clave separados `highway_owner`, que además se limpia de localStorage al cargar.
 - **Actualización del SW por mensaje.** Ver §7: `aplicarActualizacion` → `APLICAR_ACTUALIZACION` → el SW purga documento+marca → `AUTOMANTO_UPDATE_APPLIED` → recarga conservando la pestaña. Reemplaza el `location.reload()` a secas, que reseteaba a Inicio y corría una carrera con la caché.
 
+### Fase 5: modo oscuro (capa de paleta)
+
+Modo oscuro real, implementado como **una sola capa de paleta** sobre las 4 pantallas, sin tocar layout, componentes ni lógica. Base en los mockups oscuros (segundo `:root` con ~30 variables sobrescritas: neutrales invertidos, azules aclarados para fondo oscuro, estados más brillantes, sombras en negro).
+
+- **Mecanismo = el toggle que ya existía.** El estado `dark` de React sigue siendo la única fuente de verdad (el botón ☀️/🌙 de Config). Un `useEffect` sobre `dark` marca `document.documentElement` con `data-theme="dark|light"`, fija `color-scheme`, actualiza la meta `theme-color` (`#0c121c` / `#f6f8fb`) y persiste `hw_theme`. El bloque de tokens oscuros vive en `:root[data-theme="dark"]`. Ese atributo es el **puente** entre el toggle (React) y los tokens (CSS): las pantallas nuevas se pintan con `var(--...)`, así que el tema tiene que aplicarse en el CSS, no sólo en el árbol de React. **No es un tema paralelo.**
+- **El gradiente de marca no se toca.** El hero conserva su identidad; en oscuro sólo cambian su **sombra** (`--shadow-brand` oscura) y el texto de su botón, que pasa de `--blue-700` (se aclara y pierde contraste sobre el blanco) a `--brand`.
+- **Persistencia + sin destello.** La preferencia se guarda en `hw_theme` (dato **local del dispositivo**, no versionado, no viaja en respaldos — mismo patrón que `hw_apply_tab` / `automanto_last_export`). Un script inline en el `<head>` la aplica **antes del primer pintado**, así el tema sobrevive a recargas (incluida la del flujo "Actualizar", que resetea el estado de React) sin parpadeo claro→oscuro.
+- **Overrides puntuales** (donde el color claro estaba fijo en la clase, no en un token), copiados de los diseños oscuros: fondo de `.hw-tabbar`; botón del hero (`.a-cta` / `.d-hero .foot button` → `--brand`); chips de categoría (`.cchip`, mezcla sobre transparente); cajas de huérfano y demo (`.r-orphan` / `.r-demo`: fondo ámbar **translúcido** `rgba(245,147,16,.12)`, texto `#f7b64a`); botones de peligro (`.r-btn.danger` / `.irow .ib.danger` / `.tool button` → rojo claro); herramienta temporal (`.tool`, rojo translúcido — si no, la mezcla rojo+blanco daba un fondo casi blanco); botón del diagnóstico del SW (`.swfoot button` → `--brand`, porque `--blue-600` se aclara).
+- **Por qué `color-scheme` importa.** Fijarlo hace que el texto sin token explícito (p. ej. el badge "Sin datos", que hereda `canvastext`) sea theme-aware: negro en claro, blanco en oscuro. También alinea controles nativos y la barra de estado del PWA.
+- **Modales heredados.** Usan la paleta oscura previa (`D.dark`, grises estilo iOS `#1c1c1e`), no los tokens azulados nuevos (`#141d2b`). Se ven bien y legibles; la diferencia de tono queda como pulido pendiente (mismo saco que el modal de editar intervalo).
+- **Verificado** con valores computados reales: contraste del texto ámbar en huérfanos **9.47:1**, badges de estado 6.29:1 (Vencido) / 16.9:1 (pendiente), sombra oscura del hero, persistencia tras recarga sin destello, sin fondos casi-blancos sueltos, sin errores de consola.
+
 ### Pendientes abiertos del rediseño
 
 - **Herramienta temporal de reinicio de datos** (sección `⚠⚠ TEMPORAL` en Config; función `resetDemo`): **sigue en uso para pruebas — NO quitar todavía.** Debe eliminarse antes de dar el rediseño por terminado.
 - **Modal de editar intervalo (`showItv`) con estilo viejo.** El modal de registro recibió el envoltorio nuevo (Fase 1); el de intervalo quedó con el estilo heredado (`T` inline). Pulido pendiente.
 - **Strings en voseo preexistentes**, visibles y contra §9: "perdés" (aviso de respaldo), "Buscá"/"Instalala"/"Pulsá" (`comoInstalar` e instalación). Vienen de antes del rediseño; alinear a tú.
-- **Modo oscuro real:** su propia sesión, después de que esto quede verificado y funcionando.
+- **Modo oscuro real:** hecho (Fase 5, arriba). Queda como pulido menor reconciliar la paleta de los modales heredados (`D.dark`, grises iOS) con los tokens azulados nuevos.
