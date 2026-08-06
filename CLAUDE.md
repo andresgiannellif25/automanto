@@ -25,7 +25,7 @@
 | App | Un solo `index.html` | Se puede enviar por correo y abrir con doble clic |
 | UI | React 18 UMD vía cdnjs | Sin `npm install`, sin bundler |
 | JSX | Babel Standalone en el navegador | Sin build step |
-| Estilos | Objetos JS inline | Sin CSS externo ni Tailwind |
+| Estilos | Sistema de diseño en CSS (tokens `:root` + clases) para las pantallas rediseñadas; objetos JS inline (`T`) en los restos heredados | Sin Tailwind ni CSS externo; ver §11 |
 | Datos | `localStorage` + `IndexedDB` | Doble escritura, lectura preferente de localStorage |
 | PWA | `manifest.webmanifest` + `sw.js`, archivos aparte | **Obligatorio:** ver abajo |
 | Hosting | GitHub Pages | Gratis, deploy = commit |
@@ -44,7 +44,7 @@ No introducir build step, npm ni imports de módulos sin discutirlo antes (ver �
 
 ```
 automanto/
-├── index.html             ← toda la app (~810 líneas)
+├── index.html             ← toda la app (~1700 líneas tras el rediseño; ver §11)
 ├── sw.js                  ← service worker
 ├── manifest.webmanifest   ← manifest PWA
 ├── icon-192.png           ← icono "any" y favicon
@@ -82,8 +82,10 @@ Clave: `automanto_v3`.
 - `isIOS()`, `isSafari()`, `isStandalone()`, `aplicaPurga7d()`, `comoInstalar()` — detección de navegador para el banner de instalación y el aviso de los 7 días de ITP (§8, punto 1). `isSafari()` excluye Chromium a mano: casi todo UA lleva `Safari/537.36`, incluido Chrome
 - `checkPersistencia()`, `leerSW()`, `hashCorto()` — diagnóstico de persistencia y del service worker que alimenta el panel de Config (§7)
 
-**c) `IRow`**
-Fila de intervalo en Config. Usa inputs **no controlados** (`defaultValue` + `ref`, commit en `onBlur`) a propósito: los controlados perdían el cursor en cada tecla dentro de iframes. **No convertir a controlados.**
+**c) Filas de intervalo en Config**
+El componente `IRow` (edición inline de km/días con inputs **no controlados**) se **retiró en el rediseño** (§11). Ahora los intervalos se pintan con el helper `intervalRow` (km/días como pills de sólo lectura) y se editan por el modal (`openEditI` → `showItv`), que ya existía. El formulario del vehículo, en cambio, siempre fue controlado y lo sigue siendo.
+
+Nota histórica de `IRow`: usaba inputs no controlados a propósito porque los controlados perdían el cursor en cada tecla dentro de iframes. Si algún día se vuelve a editar km/días inline, tenerlo presente.
 
 **d) `App`**
 Todo el estado y la UI. Estado principal:
@@ -185,6 +187,8 @@ No requiere arreglo: tocar `sw.js` es infrecuente por diseño, y en ese caso el 
 
 **La página no debe conocer el nombre de la caché.** Cuando lo conocía, subir el worker a v2 dejó el lector de la marca apuntando a `automanto-v1` y el banner se rompió en silencio. Ahora la marca se busca con `caches.match()`, que recorre todas.
 
+**Cómo se aplica la actualización (botón "Actualizar").** No basta con `location.reload()`: reseteaba la pestaña a Inicio y corría una carrera con la caché del SW (el aviso salía antes de guardar el documento nuevo, así que la recarga podía servir la copia vieja y el banner reaparecía). El flujo actual: `aplicarActualizacion` le manda al SW el mensaje `APLICAR_ACTUALIZACION`; el SW **purga el documento cacheado y la marca** y confirma con `AUTOMANTO_UPDATE_APPLIED`; recién entonces la página recarga (con timeout de respaldo por si el SW no responde), de modo que la siguiente carga trae la versión fresca sí o sí. Además **conserva la pestaña abierta** (`sessionStorage`, clave `hw_apply_tab`) para no saltar a Inicio. En `sw.js`, `revalidate` guarda el documento nuevo **antes** de avisar, eliminando la carrera también para el camino sin mensaje. El banner es un **render único** (no hay versión de escritorio aparte). Detalle de transición: la **primera** actualización a una versión con este cambio la sirve todavía el `index.html`/`sw.js` viejos, así que usa el mecanismo previo; de ahí en adelante, el nuevo.
+
 **Dos trampas que costaron depurar** (no reintroducirlas):
 
 1. `fetch(peticiónDeNavegación, init)` lanza `TypeError`: el constructor de `Request` rechaza un init no vacío si el origen está en modo `navigate`. La petición de revalidación se construye limpia desde la URL.
@@ -274,8 +278,8 @@ Auditado contra el código el 2026-07-28.
 
   Aplica a **todo**: el texto de la interfaz, los comentarios del código, los mensajes de commit y —sobre todo— **las explicaciones dirigidas a Andrés**: informes, razonamientos, respuestas en la conversación. No es sólo una convención de producto, es cómo se le habla.
 - Nombres de variables cortos ya establecidos (`T` = tema, `CC` = colores de categoría, `fT`/`fR` = listas filtradas, `dispR` = registros mostrados). Mantener consistencia.
-- Tema claro/oscuro vía `D.dark` / `D.light`, seleccionado con `prefers-color-scheme` y toggle manual
-- Respetar `env(safe-area-inset-*)` en header y tab bar (ya corregido para iPhone con notch)
+- **Tema: claro por defecto durante el rediseño.** `dark` arranca en `false` y el seguimiento de `prefers-color-scheme` está **desactivado** (comentado) para no pisar ese default. El toggle manual (`D.dark` / `D.light`) sigue, pero sólo afecta a los restos con estilo heredado; las pantallas nuevas usan tokens claros sin variante oscura. El modo oscuro real se reconstruye en su propia sesión (§11)
+- **Safe-area del notch: forma larga, nunca dentro del shorthand `padding`** (WebkitiOS descarta la declaración entera). El offset vive en `.hw-main` (`padding-top:env(safe-area-inset-top)`); la barra inferior usa `padding-bottom:env(safe-area-inset-bottom)` (§11)
 - Cambios **incrementales y verificables**, no reescrituras completas
 - Antes de tocar el modelo de datos, avisar: puede romper los backups JSON existentes
 - Si un cambio requiere abandonar el archivo único (build step, npm, backend), **plantearlo como decisión** con pros y contras antes de implementarlo
@@ -294,3 +298,41 @@ Consecuencia práctica para cualquier sesión abierta aquí: **no introduzcas cu
 - Saldar la deuda técnica de §8 — el punto 1 (vínculo por string) ya está saldado
 - Preparar el modelo de datos para multi-vehículo, que sigue siendo útil para uso personal (más de un coche en la familia)
 - Mantener la app simple y sin dependencias: es la característica que la hace mantenible por una sola persona
+
+---
+
+## 11. Rediseño visual (modo claro) — estado actual
+
+En una sesión de rediseño se rehízo la interfaz de las cuatro pantallas a partir de mockups (Claude Design), **en modo claro**. Convive con la arquitectura previa: la lógica (§4–§7) no cambió; lo que cambió es la **capa de presentación**.
+
+### Enfoque general
+
+- **Claro por defecto.** El modo oscuro real queda para una sesión aparte. `dark` arranca en `false` y el seguimiento automático de `prefers-color-scheme` está **desactivado** (comentado) para no pisar ese default. El toggle de Config sigue manual, pero sólo afecta a los restos con estilo heredado (`T`): las pantallas nuevas usan tokens claros sin variante oscura.
+- **Sistema de diseño en CSS.** En el `<style>` hay un bloque `:root` con tokens de marca (escalas azul/neutros/estado, radios, sombras) y utilidades (`.ic`, `.mono`), con **tipografía de sistema** (sin Google Fonts). Las pantallas nuevas se estilan con **clases CSS**; los modales heredados aún usan objetos inline (`T`). Un **sprite SVG** oculto (`<symbol id="i-...">`) provee los íconos; se usan con `<use href="#i-...">`.
+- **Responsive, punto de quiebre 900px.** Shell `.hw-shell`: móvil (<900) = columna con **barra inferior** (`.hw-tabbar` + FAB central `.hw-fab`); escritorio (≥900) = fila con **barra lateral** (`.hw-side`). Las pantallas con layout distinto por formato duplican el marcado y alternan con `.hw-mob`/`.hw-desk` (display por media query); Config usa un solo marcado que refluye a 2 columnas (`.cfg-cols`).
+- **Cada pantalla trae su propio encabezado.** El header compartido viejo se eliminó por completo.
+
+### Las cuatro fases
+
+1. **Navegación + FAB.** Barra inferior (móvil) y lateral (escritorio) con los 4 destinos; el FAB central llama a `openAdd` (el handler de alta de siempre). El modal de alta de registro recibió el envoltorio visual nuevo (scrim con blur, radio, asa).
+2. **Inicio.** Saludo dinámico + hero del **servicio más urgente real** + chips de conteo + lista de servicios, todo derivado de `tracking` con los **mismos umbrales** (`homeList` = intervalos con historial ordenados por urgencia; `heroItem`). Se **retiraron** las tarjetas KPI (km/gasto) y "Últimos servicios"; el gasto total se reubicó en Registros.
+3. **Seguimiento y Registros.** Helpers `segCard` / `regCard` / `regHero` (móvil y escritorio). Íconos por categoría (`ICON` / `icoFor`). Seguimiento: filtro segmentado con conteos + chips + tarjetas con estado/holgura, badge "Personalizado" y estado "Sin datos". Registros: hero de gasto con desglose (`gasto`), tarjetas con las **dos variantes de huérfano** y el selector "Vincular a…".
+4. **Configuración.** Layout responsive de 2 columnas (`.cfg-cols`). Panel de vehículo azul con los 10 campos editables inline. Intervalos con `intervalRow` (km/días en pills; se editan por el modal). Respaldo y Almacenamiento como tarjetas `.stat` con caja de ícono: escudos para los 5 estados de persistencia (`i-shield` / `i-shield-half` / `i-shield-x` / `i-db` / `i-help`), campana/check para el respaldo. Interruptor de tema `i-sun`/`i-moon`. El panel de diagnóstico del SW se conservó.
+
+### El saludo
+
+Lee el **primer nombre de `vehicle.owner`** (dato versionado) y el momento del día (`saludoHora`, cortes 05–12 días / 12–19 tardes / 19–05 noches). Si `vehicle.owner` está vacío, no se muestra.
+
+### Fixes posteriores a las fases (no reintroducir)
+
+- **Clic del hero tapado por la marca de agua.** `.glow`/`.wm` son `position:absolute`; como hijos posicionados se pintan **encima** del botón estático e interceptaban el clic. Fix: `pointer-events:none` en los adornos. Verificado con `elementFromPoint`.
+- **Safe-area del notch: forma larga, no shorthand.** `env(safe-area-inset-top)` dentro del **shorthand** `padding` lo **descarta WebKit** (cae la declaración entera → contenido a y=0, bajo la isla). Se usa la **forma larga** `padding-top`, y el offset vive en `.hw-main`, así el banner de actualización y todo lo de arriba quedan bajo la isla. Ver §9.
+- **Propietario unificado.** El saludo lee `vehicle.owner`; se eliminó el campo y la clave separados `highway_owner`, que además se limpia de localStorage al cargar.
+- **Actualización del SW por mensaje.** Ver §7: `aplicarActualizacion` → `APLICAR_ACTUALIZACION` → el SW purga documento+marca → `AUTOMANTO_UPDATE_APPLIED` → recarga conservando la pestaña. Reemplaza el `location.reload()` a secas, que reseteaba a Inicio y corría una carrera con la caché.
+
+### Pendientes abiertos del rediseño
+
+- **Herramienta temporal de reinicio de datos** (sección `⚠⚠ TEMPORAL` en Config; función `resetDemo`): **sigue en uso para pruebas — NO quitar todavía.** Debe eliminarse antes de dar el rediseño por terminado.
+- **Modal de editar intervalo (`showItv`) con estilo viejo.** El modal de registro recibió el envoltorio nuevo (Fase 1); el de intervalo quedó con el estilo heredado (`T` inline). Pulido pendiente.
+- **Strings en voseo preexistentes**, visibles y contra §9: "perdés" (aviso de respaldo), "Buscá"/"Instalala"/"Pulsá" (`comoInstalar` e instalación). Vienen de antes del rediseño; alinear a tú.
+- **Modo oscuro real:** su propia sesión, después de que esto quede verificado y funcionando.
