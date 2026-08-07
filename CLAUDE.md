@@ -346,5 +346,5 @@ Modo oscuro real, implementado como **una sola capa de paleta** sobre las 4 pant
 
 - **Herramienta temporal de reinicio de datos** (sección `⚠⚠ TEMPORAL` en Config; función `resetDemo`): **sigue en uso para pruebas — NO quitar todavía.** Debe eliminarse antes de dar el rediseño por terminado.
 - **Modal de editar intervalo (`showItv`):** ✅ resuelto — migrado al sistema de tokens (clases `.imodal`), coherente en claro y oscuro; ya no usa `T` inline.
-- **Strings en voseo preexistentes**, visibles y contra §9: "perdés" (aviso de respaldo), "Buscá"/"Instalala"/"Pulsá" (`comoInstalar` e instalación). Vienen de antes del rediseño; alinear a tú.
+- **Strings en voseo preexistentes:** ✅ resuelto — pasados a tú neutro: "Pulsá"→"Pulsa", "Buscá"→"Busca" (`comoInstalar`), "perdés"→"pierdes" y "Tenés"→"Tienes" (aviso/estado de respaldo), más "tenés"→"tienes" en un comentario. Grep final sin voseo. ("Instalala" ya no existía en el archivo.)
 - **Modo oscuro real:** hecho (Fase 5, arriba). Pulido menor restante: reconciliar el **modal de registro** (`showRec`) y los banners de instalación/actualización —aún en `T`/`D.dark`, grises iOS— con los tokens azulados nuevos.

@@ -635,9 +635,9 @@ const aplicaPurga7d=()=>isIOS()||isSafari();
 /* Cómo se instala en este navegador. Que no haya prompt nativo NO implica que
    estemos en iOS: puede ser Firefox, un shell embebido, o que las heurísticas
    del navegador todavía no lo hayan ofrecido. */
-const comoInstalar=()=>isIOS()?"Pulsá Compartir y luego «Añadir a pantalla de inicio»."
+const comoInstalar=()=>isIOS()?"Pulsa Compartir y luego «Añadir a pantalla de inicio»."
   :isSafari()?"En Safari: menú Archivo → «Añadir al Dock»."
-  :"Buscá «Instalar aplicación» o «Añadir a la pantalla de inicio» en el menú de tu navegador.";
+  :"Busca «Instalar aplicación» o «Añadir a la pantalla de inicio» en el menú de tu navegador.";
 
 /* Persistencia del almacenamiento (deuda #4).
    persist() es un PEDIDO, no una orden: el navegador decide y puede negarlo.
@@ -1112,7 +1112,7 @@ function App(){
   const commitVehicle=field=>{const next={...vehicle,[field]:vDraft[field]};setVehicle(next);save(next,null,null);};
 
   /* Estado del respaldo. Lo que importa no es cuándo exportaste, sino si lo
-     que tenés ahora está en alguna copia: por eso se compara updatedAt contra
+     que tienes ahora está en alguna copia: por eso se compara updatedAt contra
      la fecha del export en vez de mirar sólo el tiempo transcurrido. Alguien
      que exportó y no volvió a tocar la app no tiene nada en riesgo, por muchos
      meses que pasen. */
@@ -1123,14 +1123,14 @@ function App(){
     // llegaron importados, porque ahí sí existe un archivo de origen.
     if(!lastExp)return fromImp
       ?{c:T.or,t:"No exportaste un respaldo desde este dispositivo",d:"Los datos llegaron por importación. Ese archivo respalda lo importado, pero no lo que edites desde acá."}
-      :{c:T.or,t:"Nunca hiciste un respaldo",d:"Si perdés o reinicias el teléfono, estos datos no están en ningún otro sitio."};
+      :{c:T.or,t:"Nunca hiciste un respaldo",d:"Si pierdes o reinicias el teléfono, estos datos no están en ningún otro sitio."};
     const dias=Math.floor((Date.now()-lastExp)/864e5);
     const cambio=updAt?new Date(updAt).getTime():null;
     if(!(cambio!=null&&cambio>lastExp))
       return{c:T.gr,t:"Respaldo al día",d:`No hubo cambios desde el último respaldo, ${haceCuanto(dias)}.`};
     return{
       c:dias>90?T.rd:dias>30?T.or:T.tx4,
-      t:dias>30?"Tenés cambios sin respaldar":"Cambios sin respaldar",
+      t:dias>30?"Tienes cambios sin respaldar":"Cambios sin respaldar",
       d:`Último respaldo ${haceCuanto(dias)}. Desde entonces editaste datos que no están en ninguna copia.`,
     };
   })();
