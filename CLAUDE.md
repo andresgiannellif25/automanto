@@ -342,9 +342,19 @@ Modo oscuro real, implementado como **una sola capa de paleta** sobre las 4 pant
 - **Modal de intervalo migrado a tokens.** El modal de agregar/editar intervalo (`showItv`) usa ahora clases `.imodal` sobre el sistema de tokens (`:root[data-theme]`), coherente con el resto en claro y oscuro (hoja `--surface-page`, campos `--surface-card`, botón primario con gradiente de marca). Verificado con valores computados en ambos modos. El **modal de registro** (`showRec`) y los banners de instalación/actualización siguen con estilos inline del objeto heredado `T` (`D.dark` = grises iOS `#1c1c1e`): se ven bien y legibles, pero su reconciliación con los tokens azulados queda como pulido pendiente. `T`/`D` **no** se pudo retirar porque esos usos (más el shell, el loading y el estado de respaldo) siguen vivos.
 - **Verificado** con valores computados reales: contraste del texto ámbar en huérfanos **9.47:1**, badges de estado 6.29:1 (Vencido) / 16.9:1 (pendiente), sombra oscura del hero, persistencia tras recarga sin destello, sin fondos casi-blancos sueltos, sin errores de consola.
 
+### Reorganización de Configuración (overlays)
+
+Configuración agrupó contenido que estaba suelto en dos botones de entrada (`.cfg-entry`) que abren overlays con el patrón de modal ya establecido (`.imodal`, mismos tokens). Es reorganización de UI: los elementos se movieron, no se reescribió su lógica.
+
+- **Intervalos de servicio** (`showItvList`). Un botón abre un overlay con la lista de **predefinidos** y una subdivisión aparte, con su propio encabezado, para los **personalizados**. La distinción no es solo el encabezado: cada fila personalizada lleva el badge `.pers` "Personalizado" y su botón de borrar (los predefinidos no). Crear/editar desde ahí abre el modal `showItv` encima (se renderiza después en el DOM, así queda por arriba). Antes estos intervalos estaban sueltos en Configuración; se movieron, no se duplican.
+- **Herramientas de desarrollador** (`showDev`). Un botón abre un overlay que agrupa el **diagnóstico del service worker** ("Buscar ahora" → `buscarActualizacion`) y la **herramienta temporal de reinicio** (`resetDemo`). Ambos se movieron verbatim; su lógica no cambió. Queda visible siempre, sin gesto oculto ni condición, por decisión explícita.
+- Verificado en claro y oscuro con valores computados: los dos overlays abren/cierran, la distinción predef/personalizado es visual (pill de color), el diagnóstico produce resultado ("Buscar ahora") y el reinicio repone los datos demo — todo igual desde su nueva ubicación. Sin errores de consola.
+
+> **Nota (no es tarea a resolver ahora):** "Herramientas de desarrollador" queda expuesto como cualquier otro botón. Cuando la app tenga usuarios reales, habrá que decidir si se oculta, se restringe o se retira — en particular la herramienta de reinicio, que borra datos sin recuperación. Hoy es deliberadamente visible para poder probar.
+
 ### Pendientes abiertos del rediseño
 
-- **Herramienta temporal de reinicio de datos** (sección `⚠⚠ TEMPORAL` en Config; función `resetDemo`): **sigue en uso para pruebas — NO quitar todavía.** Debe eliminarse antes de dar el rediseño por terminado.
+- **Herramienta temporal de reinicio de datos** (`resetDemo`, ahora dentro del overlay "Herramientas de desarrollador"): **sigue en uso para pruebas — NO quitar todavía.** Debe eliminarse antes de dar el rediseño por terminado. Ver la nota sobre exposición a usuarios reales, arriba.
 - **Modal de editar intervalo (`showItv`):** ✅ resuelto — migrado al sistema de tokens (clases `.imodal`), coherente en claro y oscuro; ya no usa `T` inline.
 - **Strings en voseo preexistentes:** ✅ resuelto — pasados a tú neutro: "Pulsá"→"Pulsa", "Buscá"→"Busca" (`comoInstalar`), "perdés"→"pierdes" y "Tenés"→"Tienes" (aviso/estado de respaldo), más "tenés"→"tienes" en un comentario. Grep final sin voseo. ("Instalala" ya no existía en el archivo.)
 - **Modo oscuro real:** hecho (Fase 5, arriba). Pulido menor restante: reconciliar el **modal de registro** (`showRec`) y los banners de instalación/actualización —aún en `T`/`D.dark`, grises iOS— con los tokens azulados nuevos.

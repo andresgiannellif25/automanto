@@ -434,6 +434,14 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .imodal input,.imodal select{background:var(--surface-card);color:var(--text-strong);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:16px;width:100%;box-sizing:border-box;outline:none;font-family:inherit}
 .imodal .save{padding:14px;border-radius:12px;background:var(--brand-gradient);color:#fff;border:none;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:var(--shadow-brand)}
 .imodal .save:disabled{background:var(--surface-sunken);color:var(--text-muted);cursor:default;box-shadow:none}
+/* Entradas de Configuración que abren un overlay (Intervalos, Herramientas). */
+.cfg-entry{display:flex;align-items:center;gap:13px;width:100%;text-align:left;background:var(--surface-card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:15px 16px;cursor:pointer;font-family:inherit;color:inherit}
+.cfg-entry .ebox{width:40px;height:40px;flex:0 0 auto;border-radius:11px;background:var(--brand-tint);color:var(--blue-600);display:flex;align-items:center;justify-content:center}
+.cfg-entry .ebox .ic{width:20px;height:20px}
+.cfg-entry .etx{flex:1;min-width:0}
+.cfg-entry .etx b{display:block;font-size:14.5px;font-weight:800;letter-spacing:-.01em;color:var(--blue-900)}
+.cfg-entry .etx span{display:block;font-size:12px;color:var(--neutral-500);margin-top:2px}
+.cfg-entry .chev{width:18px;height:18px;flex:0 0 auto;color:var(--neutral-400)}
 </style>
 </head>
 <body>
@@ -744,6 +752,8 @@ function App(){
   const [ifrm,setIfrm]=useState({...EMPTY_I});
   const [editIId,setEditIId]=useState(null);
   const [showItv,setShowItv]=useState(false);
+  const [showItvList,setShowItvList]=useState(false); // overlay con la lista de intervalos
+  const [showDev,setShowDev]=useState(false);          // overlay de herramientas de desarrollador
   const [tFilt,setTFilt]=useState("all");
   const [tCatFilt,setTCatFilt]=useState("Todos");
   const [catFilt,setCatFilt]=useState("Todos");
@@ -1571,7 +1581,6 @@ function App(){
             // Respaldo (3): al día→i-check(verde) · resto→i-bell(naranja/rojo).
             const rLevel=respaldo?(respaldo.c===T.gr?"ok":respaldo.c===T.rd?"bad":respaldo.c===T.or?"warn":"idle"):null;
             const rIcon=respaldo?(respaldo.c===T.gr?"i-check":"i-bell"):null;
-            const b=swBusca;
             return(
               <div className="a-wrap">
                 <div className="cfg-head">
@@ -1600,13 +1609,11 @@ function App(){
                       </div>
                     </div>
                     <div>
-                      <div className="cfg-sec-h"><span className="t"><svg className="ic"><use href="#i-clock"/></svg>Intervalos de servicio</span><button className="add" onClick={openAddI}>+ Intervalo</button></div>
-                      <div className="card2" style={{marginBottom:12}}>
-                        {custom.map(intervalRow)}
-                        <button className="addint" onClick={openAddI}><svg className="ic"><use href="#i-plus"/></svg>Crear intervalo personalizado</button>
-                      </div>
-                      <div className="cfg-sec-h" style={{paddingTop:2}}>Predefinidos · {predef.length} de fábrica</div>
-                      <div className="card2">{predef.map(intervalRow)}</div>
+                      <button className="cfg-entry" onClick={()=>setShowItvList(true)}>
+                        <span className="ebox"><svg className="ic"><use href="#i-clock"/></svg></span>
+                        <span className="etx"><b>Intervalos de servicio</b><span>{predef.length} predefinidos · {custom.length} personalizados</span></span>
+                        <svg className="ic chev"><use href="#i-arrow"/></svg>
+                      </button>
                     </div>
                   </div>
                   <div className="cfg-col">
@@ -1634,38 +1641,17 @@ function App(){
                       </div>
                     </div>
                     <div>
-                      <div className="cfg-sec-h"><span className="t"><svg className="ic"><use href="#i-settings"/></svg>Service worker <span style={{fontWeight:600,letterSpacing:0,textTransform:"none",color:"var(--neutral-400)"}}>· diagnóstico</span></span></div>
-                      <div className="card2">
-                        {!sw?<div className="swrow"><span className="k">Estado</span><span className="v">Leyendo…</span></div>
-                         :!sw.soportado?<div className="swrow"><span className="k">Estado</span><span className="v bad">No soportado</span></div>
-                         :<>
-                           <div className="swrow"><span className="k">Controlando</span><span className={"v"+(sw.controlada?"":" bad")}>{sw.controlada||"NO"}</span></div>
-                           <div className="swrow"><span className="k">Activo</span><span className={"v"+(sw.active?"":" bad")}>{sw.active||"ninguno"}</span></div>
-                           <div className="swrow"><span className="k">Esperando</span><span className={"v"+(sw.waiting?" warn":"")}>{sw.waiting||"ninguno"}</span></div>
-                           <div className="swrow"><span className="k">Cachés</span><span className={"v"+(sw.caches.length?"":" bad")}>{sw.caches.length?sw.caches.join(", "):"ninguna"}</span></div>
-                           <div className="swrow"><span className="k">Marca pendiente</span><span className={"v"+(sw.marca?" warn":"")}>{sw.marca?"sí":"no"}</span></div>
-                           <div className="swrow"><span className="k">Doc en caché</span><span className={"v"+(sw.doc?"":" bad")}>{sw.doc?`${sw.doc.huella} · ${sw.doc.bytes} B`:"no"}</span></div>
-                           {sw.error&&<div className="swrow"><span className="k">Error</span><span className="v bad">{sw.error}</span></div>}
-                         </>}
-                        {b&&b.estado==="listo"&&<>
-                          <div className="swrow"><span className="k">Última búsqueda</span><span className={"v"+(b.error?" bad":"")}>{b.error||b.update}</span></div>
-                          {b.iguales!==null&&<div className="swrow"><span className="k">¿Coinciden?</span><span className={"v"+(b.iguales?" good":" warn")}>{b.iguales?"sí — ya tienes la última":"NO — el servidor tiene otra"}</span></div>}
-                        </>}
-                        <div className="swfoot"><div className="tx">El navegador no expone cuándo comprobó por su cuenta si hay versión nueva. Esto lo pregunta ahora.</div>
-                          <button onClick={buscarActualizacion} disabled={b&&b.estado==="buscando"}>{b&&b.estado==="buscando"?"Buscando…":"Buscar ahora"}</button></div>
-                      </div>
-                    </div>
-                    <div>
                       <div className="cfg-sec-h"><span className="t"><svg className="ic"><use href="#i-help"/></svg>Acerca de</span></div>
                       <div className="card2"><div className="about"><img src="icon-192.png" alt="Highway"/>
                         <div><div className="nm">Highway</div><div className="vr">Control de mantenimiento · datos v<b>{SCHEMA}</b></div></div>
                         <span className="pwa">PWA</span></div></div>
                     </div>
                     <div>
-                      {/* ⚠⚠ TEMPORAL — HERRAMIENTA DE PRUEBA. QUITAR (esta sección + la función resetDemo) antes de dar por terminado el rediseño. */}
-                      <div className="cfg-sec-h" style={{color:"var(--red-600)"}}>Herramienta de prueba — temporal</div>
-                      <div className="tool"><div className="tx">Borra todos los datos guardados y repone los datos de ejemplo. Solo sirve para probar el rediseño; se eliminará antes de terminarlo.</div>
-                        <button onClick={resetDemo}>♻︎ Reiniciar a datos de ejemplo</button></div>
+                      <button className="cfg-entry" onClick={()=>setShowDev(true)}>
+                        <span className="ebox"><svg className="ic"><use href="#i-settings"/></svg></span>
+                        <span className="etx"><b>Herramientas de desarrollador</b><span>Diagnóstico del service worker y datos de prueba</span></span>
+                        <svg className="ic chev"><use href="#i-arrow"/></svg>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1742,6 +1728,68 @@ function App(){
               <button onClick={saveRec} disabled={!recOK} style={{padding:"14px",background:recOK?T.ac:T.bg4,color:recOK?"#fff":T.tx3,border:"none",borderRadius:12,cursor:"pointer",fontWeight:700,fontSize:17}}>
                 {editId?"Guardar cambios":"Agregar registro"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OVERLAY: LISTA DE INTERVALOS (predefinidos + subdivisión de personalizados) */}
+      {showItvList&&(()=>{
+        const custom=itvs.filter(x=>x.custom), predef=itvs.filter(x=>!x.custom);
+        return(
+        <div className="imodal">
+          <div className="sheet">
+            <div className="head">
+              <b>Intervalos de servicio</b>
+              <button className="x" onClick={()=>setShowItvList(false)}>✕</button>
+            </div>
+            <div className="body">
+              <div className="cfg-sec-h">Predefinidos · {predef.length} de fábrica</div>
+              <div className="card2">{predef.map(intervalRow)}</div>
+              <div className="cfg-sec-h"><span className="t"><svg className="ic"><use href="#i-plus"/></svg>Personalizados · {custom.length}</span></div>
+              <div className="card2">
+                {custom.map(intervalRow)}
+                <button className="addint" onClick={openAddI}><svg className="ic"><use href="#i-plus"/></svg>Crear intervalo personalizado</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
+
+      {/* OVERLAY: HERRAMIENTAS DE DESARROLLADOR (diagnóstico SW + datos de prueba) */}
+      {showDev&&(
+        <div className="imodal">
+          <div className="sheet">
+            <div className="head">
+              <b>Herramientas de desarrollador</b>
+              <button className="x" onClick={()=>setShowDev(false)}>✕</button>
+            </div>
+            <div className="body">
+              <div className="cfg-sec-h"><span className="t"><svg className="ic"><use href="#i-settings"/></svg>Service worker <span style={{fontWeight:600,letterSpacing:0,textTransform:"none",color:"var(--neutral-400)"}}>· diagnóstico</span></span></div>
+              <div className="card2">
+                {!sw?<div className="swrow"><span className="k">Estado</span><span className="v">Leyendo…</span></div>
+                 :!sw.soportado?<div className="swrow"><span className="k">Estado</span><span className="v bad">No soportado</span></div>
+                 :<>
+                   <div className="swrow"><span className="k">Controlando</span><span className={"v"+(sw.controlada?"":" bad")}>{sw.controlada||"NO"}</span></div>
+                   <div className="swrow"><span className="k">Activo</span><span className={"v"+(sw.active?"":" bad")}>{sw.active||"ninguno"}</span></div>
+                   <div className="swrow"><span className="k">Esperando</span><span className={"v"+(sw.waiting?" warn":"")}>{sw.waiting||"ninguno"}</span></div>
+                   <div className="swrow"><span className="k">Cachés</span><span className={"v"+(sw.caches.length?"":" bad")}>{sw.caches.length?sw.caches.join(", "):"ninguna"}</span></div>
+                   <div className="swrow"><span className="k">Marca pendiente</span><span className={"v"+(sw.marca?" warn":"")}>{sw.marca?"sí":"no"}</span></div>
+                   <div className="swrow"><span className="k">Doc en caché</span><span className={"v"+(sw.doc?"":" bad")}>{sw.doc?`${sw.doc.huella} · ${sw.doc.bytes} B`:"no"}</span></div>
+                   {sw.error&&<div className="swrow"><span className="k">Error</span><span className="v bad">{sw.error}</span></div>}
+                 </>}
+                {swBusca&&swBusca.estado==="listo"&&<>
+                  <div className="swrow"><span className="k">Última búsqueda</span><span className={"v"+(swBusca.error?" bad":"")}>{swBusca.error||swBusca.update}</span></div>
+                  {swBusca.iguales!==null&&<div className="swrow"><span className="k">¿Coinciden?</span><span className={"v"+(swBusca.iguales?" good":" warn")}>{swBusca.iguales?"sí — ya tienes la última":"NO — el servidor tiene otra"}</span></div>}
+                </>}
+                <div className="swfoot"><div className="tx">El navegador no expone cuándo comprobó por su cuenta si hay versión nueva. Esto lo pregunta ahora.</div>
+                  <button onClick={buscarActualizacion} disabled={swBusca&&swBusca.estado==="buscando"}>{swBusca&&swBusca.estado==="buscando"?"Buscando…":"Buscar ahora"}</button></div>
+              </div>
+              {/* ⚠⚠ TEMPORAL — HERRAMIENTA DE PRUEBA. QUITAR (esta sección + la función resetDemo) antes de dar por terminado el rediseño. */}
+              <div className="cfg-sec-h" style={{color:"var(--red-600)"}}>Herramienta de prueba — temporal</div>
+              <div className="tool"><div className="tx">Borra todos los datos guardados y repone los datos de ejemplo. Solo sirve para probar el rediseño; se eliminará antes de terminarlo.</div>
+                <button onClick={resetDemo}>♻︎ Reiniciar a datos de ejemplo</button></div>
             </div>
           </div>
         </div>
