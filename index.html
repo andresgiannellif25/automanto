@@ -419,6 +419,21 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .tool{border:1px dashed var(--red-500);border-radius:var(--radius-lg);padding:15px;background:color-mix(in srgb,var(--red-500) 5%,#fff)}
 .tool .tx{font-size:12.5px;color:var(--neutral-600);line-height:1.5;margin-bottom:11px}
 .tool button{width:100%;height:44px;border-radius:12px;background:transparent;color:var(--red-600);border:1px solid var(--red-500);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+/* Modal de agregar/editar intervalo: mismos tokens que el resto de la app
+   (antes usaba estilos inline del objeto heredado T). Solo migra el origen del
+   color al sistema de tokens; la geometría es la que ya tenía. El botón primario
+   usa el gradiente de marca, como el resto de CTAs del rediseño. */
+.imodal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);display:flex;align-items:flex-end}
+.imodal .sheet{background:var(--surface-page);border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:32px}
+.imodal .head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;position:sticky;top:0;background:var(--surface-page);z-index:1;border-bottom:1px solid var(--border)}
+.imodal .head b{font-weight:700;font-size:18px;color:var(--text-strong)}
+.imodal .x{background:var(--surface-sunken);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;color:var(--text-strong);font-size:16px;font-family:inherit}
+.imodal .body{padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+.imodal .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.imodal label{font-size:13px;color:var(--text-muted);display:block;margin-bottom:5px}
+.imodal input,.imodal select{background:var(--surface-card);color:var(--text-strong);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:16px;width:100%;box-sizing:border-box;outline:none;font-family:inherit}
+.imodal .save{padding:14px;border-radius:12px;background:var(--brand-gradient);color:#fff;border:none;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:var(--shadow-brand)}
+.imodal .save:disabled{background:var(--surface-sunken);color:var(--text-muted);cursor:default;box-shadow:none}
 </style>
 </head>
 <body>
@@ -1734,27 +1749,27 @@ function App(){
 
       {/* MODAL: INTERVALO */}
       {showItv&&(
-        <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-end"}}>
-          <div style={{background:T.bg2,borderRadius:"20px 20px 0 0",width:"100%",maxHeight:"85vh",overflowY:"auto",WebkitOverflowScrolling:"touch",paddingBottom:32}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px 12px",position:"sticky",top:0,background:T.bg2,zIndex:1,borderBottom:`0.5px solid ${T.br}`}}>
-              <div style={{fontWeight:700,fontSize:18,color:T.tx}}>{editIId?"Editar intervalo":"Nuevo intervalo"}</div>
-              <button onClick={()=>{setShowItv(false);setEditIId(null);}} style={{background:T.bg4,border:"none",borderRadius:"50%",width:30,height:30,cursor:"pointer",color:T.tx,fontSize:16}}>✕</button>
+        <div className="imodal">
+          <div className="sheet">
+            <div className="head">
+              <b>{editIId?"Editar intervalo":"Nuevo intervalo"}</b>
+              <button className="x" onClick={()=>{setShowItv(false);setEditIId(null);}}>✕</button>
             </div>
-            <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:14}}>
-              <div><label style={lbl}>Nombre *</label><input value={ifrm.name} onChange={e=>setIfrm(x=>({...x,name:e.target.value}))} placeholder="ej. Limpieza de inyectores" style={inp()}/></div>
+            <div className="body">
+              <div><label>Nombre *</label><input value={ifrm.name} onChange={e=>setIfrm(x=>({...x,name:e.target.value}))} placeholder="ej. Limpieza de inyectores"/></div>
               <div>
-                <label style={lbl}>Categoría *</label>
-                <select value={ifrm.cat} onChange={e=>setIfrm(x=>({...x,cat:e.target.value}))} style={inp()}>
+                <label>Categoría *</label>
+                <select value={ifrm.cat} onChange={e=>setIfrm(x=>({...x,cat:e.target.value}))}>
                   <option value="">Seleccionar...</option>
                   {CATS.map(c=><option key={c}>{c}</option>)}
                 </select>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                <div><label style={lbl}>Cada (km)</label><input type="number" value={ifrm.km} onChange={e=>setIfrm(x=>({...x,km:e.target.value}))} placeholder="0" style={{...inp({textAlign:"center"})}}/></div>
-                <div><label style={lbl}>Cada (días)</label><input type="number" value={ifrm.days} onChange={e=>setIfrm(x=>({...x,days:e.target.value}))} placeholder="0" style={{...inp({textAlign:"center"})}}/></div>
+              <div className="row2">
+                <div><label>Cada (km)</label><input type="number" value={ifrm.km} onChange={e=>setIfrm(x=>({...x,km:e.target.value}))} placeholder="0" style={{textAlign:"center"}}/></div>
+                <div><label>Cada (días)</label><input type="number" value={ifrm.days} onChange={e=>setIfrm(x=>({...x,days:e.target.value}))} placeholder="0" style={{textAlign:"center"}}/></div>
               </div>
-              <div><label style={lbl}>Nota</label><input value={ifrm.note} onChange={e=>setIfrm(x=>({...x,note:e.target.value}))} placeholder="Descripción breve..." style={inp()}/></div>
-              <button onClick={saveItv} disabled={!ifrm.name||!ifrm.cat} style={{padding:"14px",background:(!ifrm.name||!ifrm.cat)?T.bg4:T.gr,color:(!ifrm.name||!ifrm.cat)?T.tx3:"#fff",border:"none",borderRadius:12,cursor:"pointer",fontWeight:700,fontSize:17}}>
+              <div><label>Nota</label><input value={ifrm.note} onChange={e=>setIfrm(x=>({...x,note:e.target.value}))} placeholder="Descripción breve..."/></div>
+              <button className="save" onClick={saveItv} disabled={!ifrm.name||!ifrm.cat}>
                 {editIId?"Guardar cambios":"Crear intervalo"}
               </button>
             </div>
