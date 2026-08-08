@@ -512,7 +512,7 @@ const EMPTY_F={service:"",cat:"",desc:"",date:"",km:"",by:"",place:"",amount:"",
 const EMPTY_I={name:"",cat:"",km:"",days:"",note:""};
 
 const DEFAULT_INT=[
-  {id:"oil-engine",cat:"Filtros",name:"Aceite de motor",km:5000,days:180,note:"Sintético puede llegar a 7,500 km",custom:false},
+  {id:"oil-engine",cat:"Fluidos",name:"Aceite de motor",km:5000,days:180,note:"Sintético puede llegar a 7,500 km",custom:false},
   {id:"oil-filter",cat:"Filtros",name:"Filtro de aceite",km:5000,days:180,note:"Cambiar junto con aceite",custom:false},
   {id:"air-filter",cat:"Filtros",name:"Filtro de aire",km:15000,days:365,note:"Revisar condición cada 10,000 km",custom:false},
   {id:"fuel-filter",cat:"Filtros",name:"Filtro de combustible",km:30000,days:730,note:"Gasolina; diesel cada 15,000 km",custom:false},
@@ -606,7 +606,7 @@ const looksLikeBackup=d=>!!d&&typeof d==="object"&&!Array.isArray(d)&&(d.vehicle
 
 /* Punto de entrada 3 de 3: los datos semilla nacen ya en v2, con itvId. */
 const SAMPLE_R=[
-  {id:1,itvId:"oil-engine",service:"Aceite de motor",cat:"Filtros",desc:"Cambio aceite 5W-30 sintético + filtro",date:"2024-06-15",km:45000,by:"AutoShop Pérez",place:"Taller Central",amount:35,notes:"Próximo a 50,000 km"},
+  {id:1,itvId:"oil-engine",service:"Aceite de motor",cat:"Fluidos",desc:"Cambio aceite 5W-30 sintético + filtro",date:"2024-06-15",km:45000,by:"AutoShop Pérez",place:"Taller Central",amount:35,notes:"Próximo a 50,000 km"},
   {id:2,itvId:"brake-pads-front",service:"Pastillas delanteras",cat:"Frenos",desc:"Sustitución pastillas freno delantero",date:"2024-08-20",km:47500,by:"AutoShop Pérez",place:"Taller Central",amount:80,notes:"Revisar discos próximo cambio"},
   {id:3,itvId:"tire-rotation",service:"Rotación de llantas",cat:"Neumáticos",desc:"Rotación cruzada + calibración presión",date:"2024-09-01",km:48000,by:"Llantería Norte",place:"Llantería Norte",amount:15,notes:"Presión: 32 PSI"},
 ];
@@ -754,6 +754,7 @@ function App(){
   const [showItv,setShowItv]=useState(false);
   const [showItvList,setShowItvList]=useState(false); // overlay con la lista de intervalos
   const [showDev,setShowDev]=useState(false);          // overlay de herramientas de desarrollador
+  const [migrMsg,setMigrMsg]=useState(null);           // aviso único de la migración de categoría (Aceite de motor → Fluidos)
   const [tFilt,setTFilt]=useState("all");
   const [tCatFilt,setTCatFilt]=useState("Todos");
   const [catFilt,setCatFilt]=useState("Todos");
@@ -817,13 +818,28 @@ function App(){
   },[]); */
 
   useEffect(()=>{
-    storageLoad().then(d=>{
+    storageLoad().then(async d=>{
       if(d){
         if(d.vehicle){setVehicle(d.vehicle);setVDraft(d.vehicle);}
-        if(d.records)setRecords(d.records);
+        /* Migración única de categoría: "Aceite de motor" pasó de Filtros a
+           Fluidos. Reescribe la categoría vieja SOLO en registros de ese
+           intervalo (itvId "oil-engine"); nunca toca "Filtro de aceite"
+           (oil-filter), que sigue en Filtros. Es idempotente: tras reescribir
+           no queda ninguno, así que no vuelve a correr ni a guardar. El usuario
+           respaldó antes por si quiere revertir. Separada a propósito de
+           migrate()/toV2 (la migración de esquema no se toca). */
+        let migr=0;
+        const recs=(d.records||[]).map(r=>(r.itvId==="oil-engine"&&r.cat==="Filtros")?(migr++,{...r,cat:"Fluidos"}):r);
+        setRecords(recs);
         if(d.itvs)setItvs(d.itvs);
-        setUpdAt(d.updatedAt||null);
         setSeeded(true); // existe documento guardado ⇒ datos propios, nunca ejemplos
+        if(migr>0){
+          const u=await storageSave({vehicle:d.vehicle,records:recs,itvs:d.itvs});
+          setUpdAt(u);
+          setMigrMsg(`Se reclasificaron ${migr} registro(s) de “Aceite de motor” de Filtros a Fluidos.`);
+        }else{
+          setUpdAt(d.updatedAt||null);
+        }
         setSyncMsg("Guardado ✓");
       }else{setSyncMsg("Listo");}
       setLoaded(true);
@@ -1355,6 +1371,14 @@ function App(){
         <div style={{background:T.ac,flexShrink:0,padding:"9px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div style={{fontSize:13,color:"#fff",fontWeight:500}}>Nueva versión disponible</div>
           <button onClick={aplicarActualizacion} style={{background:"rgba(255,255,255,0.25)",color:"#fff",border:"none",borderRadius:16,padding:"5px 14px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Actualizar</button>
+        </div>
+      )}
+
+      {/* AVISO: MIGRACIÓN DE CATEGORÍA (una vez, descartable) */}
+      {migrMsg&&(
+        <div style={{background:T.gr,flexShrink:0,padding:"9px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div style={{fontSize:13,color:"#fff",fontWeight:500}}>{migrMsg}</div>
+          <button onClick={()=>setMigrMsg(null)} aria-label="Descartar" style={{background:"rgba(255,255,255,0.25)",color:"#fff",border:"none",borderRadius:"50%",width:26,height:26,cursor:"pointer",flexShrink:0,fontSize:13}}>✕</button>
         </div>
       )}
 

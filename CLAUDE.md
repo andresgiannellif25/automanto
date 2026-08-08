@@ -352,6 +352,15 @@ Configuración agrupó contenido que estaba suelto en dos botones de entrada (`.
 
 > **Nota (no es tarea a resolver ahora):** "Herramientas de desarrollador" queda expuesto como cualquier otro botón. Cuando la app tenga usuarios reales, habrá que decidir si se oculta, se restringe o se retira — en particular la herramienta de reinicio, que borra datos sin recuperación. Hoy es deliberadamente visible para poder probar.
 
+### Taxonomía de categorías: "Aceite de motor" → Fluidos
+
+"Aceite de motor" se reclasificó de **Filtros** a **Fluidos** (antes convivía raro con "Filtro de aceite", que sí es un filtro y se queda en Filtros).
+
+- **Definición y semilla:** `cat` cambiado a "Fluidos" en el intervalo `oil-engine` de `DEFAULT_INT` y en `SAMPLE_R`.
+- **Migración única de registros guardados:** cada registro **congela** su `cat` al crearse, y la tarjeta de Registros, el filtro por categoría (`r.cat===catFilt`) y el desglose de gasto (`porCat[r.cat]`) usan ese valor congelado — así que reclasificar la definición no arregla los registros viejos. Un remap **en el handler de carga** (`storageLoad().then`) reescribe `cat:"Filtros"→"Fluidos"` **solo** en registros con `itvId==="oil-engine"` (nunca `oil-filter`/"Filtro de aceite"). Es **idempotente** (tras reescribir no queda ninguno; no vuelve a correr ni a guardar), está **separado a propósito de `migrate()`/`toV2`** (la migración de esquema no se toca), y avisa una vez con un banner descartable (`migrMsg`) que muestra cuántos reclasificó. Seguimiento no necesitaba migración: deriva la categoría del intervalo vinculado, no del `cat` congelado.
+- **Ícono de Motor:** se propuso un ícono `i-engine` (silueta de motor) para la categoría Motor y **se descartó** por decisión del usuario; Motor sigue con `i-oil`. No reintroducir sin pedirlo.
+- Verificado: filtro "Filtros" → solo "Filtro de aceite"; "Fluidos" → "Aceite de motor"; desglose de gasto agrupa Aceite de motor bajo Fluidos; sin huérfanos; idempotente en la segunda carga.
+
 ### Pendientes abiertos del rediseño
 
 - **Herramienta temporal de reinicio de datos** (`resetDemo`, ahora dentro del overlay "Herramientas de desarrollador"): **sigue en uso para pruebas — NO quitar todavía.** Debe eliminarse antes de dar el rediseño por terminado. Ver la nota sobre exposición a usuarios reales, arriba.
