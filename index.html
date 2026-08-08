@@ -593,7 +593,15 @@ function migrate(doc){
      saltaría la migración y quedaría sin vincular en silencio, para siempre.
      toV2 decide elemento por elemento y es idempotente, así que aplicarlo
      siempre no cuesta nada y no depende de que nadie haya etiquetado bien. */
-  return toV2(doc);
+  const d=toV2(doc);
+  /* Reclasificación idempotente, en el MISMO pipeline que toV2 (por eso vale en
+     los tres puntos de entrada: carga, importar y semilla): "Aceite de motor"
+     pasó de Filtros a Fluidos. Solo toca registros de ese intervalo (itvId
+     "oil-engine"); "Filtro de aceite" (oil-filter) se queda en Filtros.
+     Silenciosa, como toV2: se aplica en cada lectura, sin banner ni guardado. */
+  if(Array.isArray(d.records)&&d.records.some(r=>r.itvId==="oil-engine"&&r.cat==="Filtros"))
+    return{...d,records:d.records.map(r=>(r.itvId==="oil-engine"&&r.cat==="Filtros")?{...r,cat:"Fluidos"}:r)};
+  return d;
 }
 
 /* Registros que quedarían sin vincular. Lo muestra el diálogo de importar
@@ -754,7 +762,6 @@ function App(){
   const [showItv,setShowItv]=useState(false);
   const [showItvList,setShowItvList]=useState(false); // overlay con la lista de intervalos
   const [showDev,setShowDev]=useState(false);          // overlay de herramientas de desarrollador
-  const [migrMsg,setMigrMsg]=useState(null);           // aviso único de la migración de categoría (Aceite de motor → Fluidos)
   const [tFilt,setTFilt]=useState("all");
   const [tCatFilt,setTCatFilt]=useState("Todos");
   const [catFilt,setCatFilt]=useState("Todos");
@@ -818,28 +825,13 @@ function App(){
   },[]); */
 
   useEffect(()=>{
-    storageLoad().then(async d=>{
+    storageLoad().then(d=>{
       if(d){
         if(d.vehicle){setVehicle(d.vehicle);setVDraft(d.vehicle);}
-        /* Migración única de categoría: "Aceite de motor" pasó de Filtros a
-           Fluidos. Reescribe la categoría vieja SOLO en registros de ese
-           intervalo (itvId "oil-engine"); nunca toca "Filtro de aceite"
-           (oil-filter), que sigue en Filtros. Es idempotente: tras reescribir
-           no queda ninguno, así que no vuelve a correr ni a guardar. El usuario
-           respaldó antes por si quiere revertir. Separada a propósito de
-           migrate()/toV2 (la migración de esquema no se toca). */
-        let migr=0;
-        const recs=(d.records||[]).map(r=>(r.itvId==="oil-engine"&&r.cat==="Filtros")?(migr++,{...r,cat:"Fluidos"}):r);
-        setRecords(recs);
+        if(d.records)setRecords(d.records);
         if(d.itvs)setItvs(d.itvs);
+        setUpdAt(d.updatedAt||null);
         setSeeded(true); // existe documento guardado ⇒ datos propios, nunca ejemplos
-        if(migr>0){
-          const u=await storageSave({vehicle:d.vehicle,records:recs,itvs:d.itvs});
-          setUpdAt(u);
-          setMigrMsg(`Se reclasificaron ${migr} registro(s) de “Aceite de motor” de Filtros a Fluidos.`);
-        }else{
-          setUpdAt(d.updatedAt||null);
-        }
         setSyncMsg("Guardado ✓");
       }else{setSyncMsg("Listo");}
       setLoaded(true);
@@ -1371,14 +1363,6 @@ function App(){
         <div style={{background:T.ac,flexShrink:0,padding:"9px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div style={{fontSize:13,color:"#fff",fontWeight:500}}>Nueva versión disponible</div>
           <button onClick={aplicarActualizacion} style={{background:"rgba(255,255,255,0.25)",color:"#fff",border:"none",borderRadius:16,padding:"5px 14px",fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0}}>Actualizar</button>
-        </div>
-      )}
-
-      {/* AVISO: MIGRACIÓN DE CATEGORÍA (una vez, descartable) */}
-      {migrMsg&&(
-        <div style={{background:T.gr,flexShrink:0,padding:"9px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
-          <div style={{fontSize:13,color:"#fff",fontWeight:500}}>{migrMsg}</div>
-          <button onClick={()=>setMigrMsg(null)} aria-label="Descartar" style={{background:"rgba(255,255,255,0.25)",color:"#fff",border:"none",borderRadius:"50%",width:26,height:26,cursor:"pointer",flexShrink:0,fontSize:13}}>✕</button>
         </div>
       )}
 
